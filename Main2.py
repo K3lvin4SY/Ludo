@@ -22,7 +22,7 @@ class Screen():
         self.width = self.properties.width
         self.height = self.properties.height
         self.fill = fill
-        self.current = False
+        self.enabled = False
     
     def enable(self):
         pygame.display.set_caption(self.title)
@@ -62,7 +62,19 @@ class WindowSystem:
         mGameOptionsScreen = Screen("Multiplayer Game Options")
         gameScreen = Screen("Game")
 
-        self.screens = {"main":startScreen, "sgo":sGameOptionsScreen, "mgo":mGameOptionsScreen, "gs":gameScreen}
+        self.screens = {
+            "main":startScreen,
+            "sgo":sGameOptionsScreen,
+            "mgo":mGameOptionsScreen,
+            "gs":gameScreen
+        }
+
+        self.screensFunc = {
+            "main":self.main,
+            "sgo":self.singleGameOptScn,
+            "mgo":self.multiGameOptScn,
+            "gs":self.gameScn
+        }
 
         startScreen.enable()
 
@@ -70,10 +82,6 @@ class WindowSystem:
 
 
         while self.running:
-            '''
-            for scn in self.screens:
-                self.screens[scn].update()
-            '''
             
             
 
@@ -83,23 +91,38 @@ class WindowSystem:
                 if event.type == pygame.QUIT:
                     self.running = False
     
-    def main(self, startScreen):
+    def main(self, scn):
         
         self.display = "main"
         self.singlePlayerBtn = self.addTextBox(TextBox(self.properties, 100, 50, centerX=True, centerY=True, y=-100, text='Tesadwawdwdawt'))
-        self.singlePlayerBtn.draw(startScreen)
+        self.singlePlayerBtn.draw(scn)
         self.multiPlayerBtn = self.addTextBox(TextBox(self.properties, 100, 50, centerX=True, centerY=True, y=100, text='Test', color=(255,0,255), hoverColor=(132,231,0), command=lambda x="mgo": self.changeScreen(x)))
         
-        self.multiPlayerBtn.draw(startScreen, outline=(0,0,255))
+        self.multiPlayerBtn.draw(scn, outline=(0,0,255))
+
+    def multiGameOptScn(self, scn):
+        self.display = "mgo"
+        self.singlePlayerBtn = self.addTextBox(TextBox(self.properties, 100, 150, centerX=True, centerY=True, y=100, text='Ping!', command=lambda x="main": self.changeScreen(x)))
+        self.singlePlayerBtn.draw(scn)
+
+    def singleGameOptScn(self, scn):
+        self.display = "sgo"
+    
+    def gameScn(self, scn):
+        self.display = "gs"
 
     def changeScreen(self, to):
-        print("test btn clicked")
-        if to != self.display:
-            self.screens[to].enable()
-            self.screens[self.display].disable()
-            self.display = to
+        """method for changing screens by enabaling the new and disableing the old
+
+        Args:
+            to (string): gets the string code of a screen.
+        """
+        if to != self.display: # if screen code id not current
+            self.screens[to].enable() # enable requested screen
+            self.screens[self.display].disable() # disable current
+            self.screensFunc[to](self.screens[to].getTitle()) # activate new screen
     
-    def update(self, event):
+    def update(self, event): # method that gets called aas quicly as possible (main loop)
         
         
         pos = pygame.mouse.get_pos()
@@ -120,11 +143,20 @@ class WindowSystem:
                         if it.command != None:
                             it.command()
                             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+                            break
 
         pass
         
 
     def addTextBox(self, tb):
+        """adds the textbox to a dictionary
+
+        Args:
+            tb (TextBox): the textBox created
+
+        Returns:
+            TextBox: returns the given textbox
+        """
         self.items[tb] = [self.display, "textbox"]
         return tb
 
