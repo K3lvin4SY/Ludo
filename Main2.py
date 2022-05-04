@@ -10,7 +10,39 @@ pygame.init()
 #https://www.petercollingridge.co.uk/tutorials/pygame-physics-simulation/creating-pygame-window/
 def test():
     print("lol")
-class WindowHandler:
+
+colours = {"White":(255, 255, 255), "Black":(0, 0, 0), "Red":(255, 0, 0), "Green":(0, 255, 0), "Blue":(0, 0, 255)}
+
+class Screen():
+    def __init__(self, title, width=1280, height=720, fill=colours["White"]) -> None:
+        
+        self.properties = Properties(width, height)
+
+        self.title = title
+        self.width = self.properties.width
+        self.height = self.properties.height
+        self.fill = fill
+        self.current = False
+    
+    def enable(self):
+        pygame.display.set_caption(self.title)
+        self.enabled = True
+        self.screen = pygame.display.set_mode((self.width, self.height))
+
+    def disbale(self):
+        self.enabled = False
+    
+    def checkState(self):
+        return self.enabled
+
+    def update(self):
+        if self.enabled:
+            self.screen.fill(self.fill)
+        
+    def getTitle(self):
+        return self.screen
+
+class WindowSystem:
 
     def __init__(self) -> None:
 
@@ -56,8 +88,8 @@ class WindowHandler:
         if event.type == pygame.MOUSEMOTION:
             for it in self.items:
                 if self.items[it][0] == self.win and self.items[it][1] == "textbox":
-                    it.isOver(pos)
-                    print("d")
+                    if it.isOver(pos):
+                        print("d")
         if event.type == pygame.MOUSEBUTTONDOWN:
             for it in self.items:
                 if self.items[it][0] == self.win:
@@ -89,6 +121,7 @@ class TextBox():
         else:
             self.y = y
 
+        self.hover = False
         self.color = color
         self.originalColor = color
         if hoverColor != None:
@@ -123,8 +156,11 @@ class TextBox():
             if pos[1] > self.y and pos[1] < self.y + self.height:
 
                 self.color = self.hoverColor
+                self.hover = True
                 return True
-        self.color = self.originalColor
+        if self.hover == True:
+            self.color = self.originalColor
+            self.hover = False
         return False
 
 class Properties():
@@ -133,4 +169,4 @@ class Properties():
         self.height =height
 
 
-game = WindowHandler()
+game = WindowSystem()
