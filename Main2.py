@@ -2,6 +2,7 @@ from codeop import CommandCompiler
 import pygame
 from colors import colors
 from gui import *
+import json
 
 pygame.init()
 
@@ -218,13 +219,42 @@ class WindowSystem:
         if self.participants == 0:
             return
         print("Starting Game along with " + str(self.participants) + " participants!")
+        self.changeScreen("gs")
         pass
 
-class Pawn:
-    def __init__(self, color) -> None:
+class GamePlatform:
+    def __init__(self, mode, participants, size) -> None:
+        self.mode = mode
+        self.participants = participants
+        playerColors = ["Red", "Orange", "Yellow", "Green"]
+        self.players = {}
+        if self.mode == "mgo":
+            for i in range(self.participants):
+                self.players[playerColors[i]] = Player(playerColors[i])
+        elif self.mode == "sgo":
+            self.players[playerColors[0]] = Player(playerColors[0])
+            for i in range(self.participants):
+                self.players[playerColors[i+1]] = Player(playerColors[i+1], bot=True)
+
+        
+    
+    def draw(self, display, size):
+        pass
+
+class Player():
+    def __init__(self, color, bot=False) -> None:
+        self.color = color
+        self.bot = bot
+        self.pawns = []
+        for i in range(4):
+            self.pawns.append(Pawn(self, self.color))
+        pass
+
+class Pawn(Player):
+    def __init__(self, parent, color) -> None:
+        super().__init__(self, parent)
         self.color = color
         pass
-
 
 
 class Properties():
