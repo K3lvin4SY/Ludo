@@ -1,4 +1,3 @@
-from codeop import CommandCompiler
 import pygame
 from colors import colors
 from gui import *
