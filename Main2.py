@@ -11,10 +11,10 @@ pygame.init()
 def test():
     print("lol")
 
-colours = {"White":(255, 255, 255), "Black":(0, 0, 0), "Red":(255, 0, 0), "Green":(0, 255, 0), "Blue":(0, 0, 255), "bg":(195, 200, 219)}
+colors = {"White":(255, 255, 255), "Black":(0, 0, 0), "Red":(255, 0, 0), "Green":(0, 255, 0), "Blue":(0, 0, 255), "bg":(195, 200, 219), "Secondary":(36, 42, 56), "DarkGrey":(78, 89, 111), "Primary1":(245, 75, 100), "Primary2":(250, 134, 98)}
 
 class Screen():
-    def __init__(self, title, width=1280, height=720, fill=colours["bg"]) -> None:
+    def __init__(self, title, width=1280, height=720, fill=colors["Secondary"]) -> None:
         
         self.properties = Properties(width, height)
 
@@ -94,11 +94,13 @@ class WindowSystem:
     def main(self, scn):
         
         self.display = "main"
-        self.singlePlayerBtn = self.addTextBox(TextBox(self.properties, 100, 50, centerX=True, centerY=True, y=-100, text='Tesadwawdwdawt'))
+        self.singlePlayerBtn = self.addTextBox(TextBox(self.properties, 500, 70, centerX=True, y=100, text='Ludo', color=colors["Primary2"]))
         self.singlePlayerBtn.draw(scn)
-        self.multiPlayerBtn = self.addTextBox(TextBox(self.properties, 100, 50, centerX=True, centerY=True, y=100, text='Test', color=(255,0,255), hoverColor=(132,231,0), command=lambda x="mgo": self.changeScreen(x)))
+        self.singlePlayerBtn = self.addTextBox(TextBox(self.properties, 230, 60, centerX=True, centerY=True, y=0, text='Singleplayer', color=colors["DarkGrey"], hoverColor=colors["White"], command=lambda x="sgo": self.changeScreen(x)))
+        self.singlePlayerBtn.draw(scn, outline=colors["Primary1"], size=40)
+        self.multiPlayerBtn = self.addTextBox(TextBox(self.properties, 230, 60, centerX=True, centerY=True, y=100, text='Multiplayer', color=colors["DarkGrey"], hoverColor=colors["White"], command=lambda x="mgo": self.changeScreen(x)))
         
-        self.multiPlayerBtn.draw(scn, outline=(0,0,255))
+        self.multiPlayerBtn.draw(scn, outline=colors["Primary1"], size=40)
 
     def multiGameOptScn(self, scn):
         self.display = "mgo"
@@ -107,6 +109,8 @@ class WindowSystem:
 
     def singleGameOptScn(self, scn):
         self.display = "sgo"
+        self.singlePlayerBtn = self.addTextBox(TextBox(self.properties, 100, 150, centerX=True, centerY=True, y=-100, text='Pong!', command=lambda x="main": self.changeScreen(x)))
+        self.singlePlayerBtn.draw(scn)
     
     def gameScn(self, scn):
         self.display = "gs"
@@ -202,12 +206,12 @@ class TextBox():
         self.outline = outline
         self.size = size
         if outline:
-            pygame.draw.rect(display, outline, (self.x-2,self.y-2,self.width+4,self.height+4), 0, border_radius=8)
+            pygame.draw.rect(display, outline, (self.x-2,self.y-2,self.width+4,self.height+4), 0, border_radius=9)
             
         pygame.draw.rect(display, self.color, (self.x,self.y,self.width,self.height), 0, border_radius=8)
         
         if self.text != '':
-            font = pygame.font.SysFont('comicsans', size)
+            font = pygame.font.SysFont('marvel', size)
             text = font.render(self.text, 1, (0,0,0))
             display.blit(text, (self.x + (self.width/2 - text.get_width()/2), self.y + (self.height/2 - text.get_height()/2)))
 
