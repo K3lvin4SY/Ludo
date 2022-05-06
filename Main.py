@@ -149,7 +149,7 @@ class WindowSystem:
        
         self.grid = self.addTextBox(GamePlatform(self.properties, self.display, self.participants))
         self.display = "gs"
-        self.grid.draw(scn)
+        self.grid.draw(scn, self.display)
         # Back Btn
         self.backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x=20, text='Back', command=lambda x="main": self.changeScreen(x)))
         self.backBtn.draw(scn)
@@ -167,6 +167,7 @@ class WindowSystem:
             self.screens[to].enable() # enable requested screen
             self.screens[self.display].disable() # disable current
             self.screensFunc[to](self.screens[to].getTitle()) # activate new screen
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
     
     def update(self, event): # method that gets called aas quicly as possible (main loop)
         
@@ -184,18 +185,27 @@ class WindowSystem:
                     it.isOver(pos)
                 elif self.items[it][0] == self.display and self.items[it][1] == "select":
                     it.isOver(pos)
+                elif self.items[it][0] == self.display and self.items[it][1] == "platform":
+                    it.isOver(pos)
         if event.type == pygame.MOUSEBUTTONDOWN:
             for it in self.items:
-                if self.items[it][0] == self.display and self.items[it][1] == "textbox":
+                itemDisplay = self.items[it][0]
+                itemType = self.items[it][1]
+                if itemDisplay == self.display and itemType == "textbox":
                     if it.isOver(pos) == True:
                         if it.command != None:
                             it.command()
-                            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
                             break
-                elif self.items[it][0] == self.display and self.items[it][1] == "select":
+                elif itemDisplay == self.display and itemType == "select":
                     if it.isOver(pos) == True:
                         self.participants = it.getOver(pos).command()
-                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+                        break
+                elif itemDisplay == self.display and itemType == "platform":
+                    if it.isOver(pos) == True:
+                        if isinstance(it.getOver(pos), Dice):
+                            it.getOver(pos).dice.command()
+                        else:
+                            it.getOver(pos).pawn.command()
                         break
 
         pass
@@ -213,7 +223,7 @@ class WindowSystem:
         if isinstance(tb, Selection):
             self.items[tb] = [self.display, "select"]
         elif isinstance(tb, GamePlatform):
-            self.items[tb] = [self.display, "platform"]
+            self.items[tb] = ["gs", "platform"]
         else:
             self.items[tb] = [self.display, "textbox"]
         return tb
@@ -241,19 +251,22 @@ class GamePlatform:
         self.bases = {}
         if self.mode == "mgo":
             for i in range(self.participants):
-                self.players[self.playerColors[i]] = Player(self.playerColors[i])
+                self.players[self.playerColors[i]] = Player(self.playerColors[i], self)
         elif self.mode == "sgo":
-            self.players[self.playerColors[0]] = Player(self.playerColors[0])
+            self.players[self.playerColors[0]] = Player(self.playerColors[0], self)
             for i in range(self.participants-1):
-                self.players[self.playerColors[i+1]] = Player(self.playerColors[i+1], bot=True)
+                self.players[self.playerColors[i+1]] = Player(self.playerColors[i+1], self, bot=True)
         with open('map.json') as file:
             self.mapData = json.load(file)
+        self.turn = self.players[self.playerColors[0]]
+        self.rolled = False
 
         
     
-    def draw(self, display):
+    def draw(self, scn, display):
         self.gridSize = self.mapData["dimentions"]
         self.display = display
+        self.scn = scn
         
         def getCoords(cor, gridSize=self.gridSize):
             """converts grid cordinates to screen cordinates
@@ -283,7 +296,7 @@ class GamePlatform:
                 else:
                     color = colors["DarkGrey"]
             tile = Tile(self.properties, tbSize, tbSize, self.centerX, self.centerY, x, y, color, gridData)
-            tileInfo = tile.draw(display)
+            tileInfo = tile.draw(scn)
             self.tiles[tileInfo[0]] = tileInfo[1]
 
         # adds private roads  
@@ -300,7 +313,7 @@ class GamePlatform:
                     else:
                         color = colors["White"]
                 tile = Tile(self.properties, tbSize, tbSize, self.centerX, self.centerY, x, y, color, gridData)
-                tileInfo = tile.draw(display)
+                tileInfo = tile.draw(scn)
                 self.endTiles[tileInfo[0]] = tileInfo[1]
 
         # adds the home bases
@@ -321,16 +334,91 @@ class GamePlatform:
                     color = colors["White"]
             if color != colors["Secondary"]:
                 tile = Tile(self.properties, tbSize*2, tbSize*2, self.centerX, self.centerY, x, y, color, gridData)
-                tileInfo = tile.draw(display)
+                tileInfo = tile.draw(scn)
                 self.bases[tileInfo[0]] = tileInfo[1]
         
         # set pawn home
         baseNum = 0
         for player in self.players.values():
             baseNum += 1
-            player.givePawnsInfo(self.bases["b"+str(baseNum)], display, self.properties)
+            player.givePawnsInfo(self.bases["b"+str(baseNum)], scn, self.properties)
 
-        pass
+        # set dice
+        self.dice = Dice(self, self.properties, tbSize, tbSize, self.centerX, self.centerY)
+        self.dice.draw(self.scn)
+
+        # Player Display
+        self.playerDisplay = PlayerDisplay(self.properties, tbSize, tbSize, colors[list(self.players)[0]], x=20, y=20, text=list(self.players)[0] + ", Roll the Dice")
+        self.playerDisplay.draw(self.scn, 40)
+
+    def isOver(self, pos):
+        for player in self.players.values():
+            for pawn in player.pawns:
+                if pawn.isOver(pos):
+                    return True
+        if self.dice.isOver(pos):
+            return True
+        return False
+
+    def getOver(self, pos):
+        for player in self.players.values():
+            for pawn in player.pawns:
+                if pawn.isOver(pos):
+                    return pawn
+        if self.dice.isOver(pos):
+            return self.dice
+        return None
+    
+    def nextPlayer(self, dice):
+        self.rolled = False
+        index = self.players.values().index(self.turn)
+        if dice == 1:
+            self.playerDisplay.changeText(self.players.keys()[index] + ", Roll the Dice Again")
+            return self.turn
+        try:
+            self.turn = self.players.values()[index+1]
+            self.playerDisplay.changeColor(colors[self.players.keys()[index+1]])
+            self.playerDisplay.changeText(self.players.keys()[index+1] + ", Roll the Dice")
+        except:
+            self.turn = self.players.values()[0]
+            self.playerDisplay.changeColor(colors[self.players.keys()[0]])
+            self.playerDisplay.changeText(self.players.keys()[0] + ", Roll the Dice")
+        return self.turn
+    
+    def diceRoll(self, value):
+        self.rolled = True
+        if len(self.turn.home.pawn) == 4:
+            self.playerDisplay.changeText(self.turn.color + ", Pick a Pawn")
+            return
+        
+
+class PlayerDisplay:
+    def __init__(self, properties, width, height, color=colors["Red"], centerX=False, centerY=False, x=0 , y=0, text='', textColor=colors["White"]) -> None:
+        self.properties = properties
+        self.width = width
+        self.height = height
+        self.centerX = centerX
+        self.centerY = centerY
+        self.x = x
+        self.y = y
+        self.color = color
+        self.text = text
+        self.textColor = textColor
+        self.turnMonitor = TextBox(self.properties, self.width, self.height, self.centerX, self.centerY, self.x, self.y, self.color)
+        self.turnMessage = TextBox(self.properties, self.width*4, self.height*1, self.centerX, self.centerY, self.x, int(self.y+self.width*1.5), colors["Secondary"], self.text, textColor=self.textColor)
+    
+    def draw(self, scn, size):
+        self.size = size
+        self.turnMonitor.draw(scn)
+        self.turnMessage.draw(scn, size=self.size)
+
+    def changeColor(self, color):
+        self.color = color
+        self.turnMonitor.changeColor(color)
+    
+    def changeText(self, text):
+        self.text = text
+        self.turnMessage.changeText(text)
 
 class Tile:
     def __init__(self, properties, width, height, centerX=False, centerY=False, x=0 , y=0, color=(255,255,0), gridData="") -> None:
@@ -354,7 +442,7 @@ class Tile:
     
     def draw(self, display):
         self.tile.draw(display)
-        return [self.gridData, self]
+        return [self.gridType, self]
     
     def addPawn(self, pawn):
         if not self.gridData[0].lower() == "b":
@@ -387,26 +475,29 @@ class Tile:
                 del self.pawn[pawn]
 
 class Player():
-    def __init__(self, color, bot=False) -> None:
+    def __init__(self, color, platform, bot=False) -> None:
         self.color = color
         self.bot = bot
         self.pawns = []
         for i in range(4):
-            self.pawns.append(Pawn(self.color))
+            self.pawns.append(Pawn(self.color, platform, self))
         pass
     def givePawnsInfo(self, home, display, properties):
+        self.home = home
         for pawn in self.pawns:
             pawn.setHome(home)
             pawn.draw(display, properties)
 
 class Pawn():
-    def __init__(self, color) -> None:
+    def __init__(self, color, platform, player) -> None:
         self.color = color
+        self.platform = platform
+        self.player = player
         pass
 
     def draw(self, display, properties):
         self.properties = properties
-        self.pawn = TextBox(properties, 30, 30, True, True, self.x, self.y, colors[self.color])
+        self.pawn = TextBox(properties, 30, 30, True, True, self.x, self.y, colors[self.color], command=lambda: self.clicked())
         self.pawn.draw(display, colors["White"])
 
     def setHome(self, home):
@@ -416,12 +507,27 @@ class Pawn():
         (self.ox, self.oy) = (self.x, self.y)
 
     def sendHome(self):
+        (self.x, self.y) = (self.ox, self.oy) # maybe move this 1 line down?
         self.home.addPawn(self)
-        (self.x, self.y) = (self.ox, self.oy)
-        pass
+
+    def isOver(self, pos):
+        return self.pawn.isOver(pos)
+
+    def clicked(self):
+        if self.platform.turn == self.player: # players turn
+            if self.platform.rolled == True: # player has rolled dice
+                # move pawn
+                self.movePawn(self.home.gridNum, self.platform.dice.value)
+                pass
+    
+    def movePawn(self, prevLocation, diceValue):
+        for i in range(diceValue):
+            if self.platform.tiles[prevLocation].gridType[-1] == self.platform.playerColors.index(self.color)+1: # if tile standing on is players entry or exit
+                self.platform.tiles[prevLocation+1]
+
 
 class Dice:
-    def __init__(self, properties, width, height, centerX=True, centerY=True, x=0 , y=0, color=colors["White"]) -> None:
+    def __init__(self, platform, properties, width, height, centerX=True, centerY=True, x=0 , y=0, color=colors["White"]) -> None:
         self.properties = properties
         self.width = width
         self.height = height
@@ -431,17 +537,20 @@ class Dice:
         self.y = y
         self.color = color
         self.value = 6
+        self.platform = platform
         self.dice = TextBox(self.properties, self.width, self.height, centerX, centerY, self.x, self.y, self.color, str(self.value), command=lambda: self.roll())
     
     def draw(self, display):
         self.dice.draw(display)
     
     def roll(self):
-        self.value = random.randint(1, 6)
-        self.dice.changeText(str(self.value))
+        if self.platform.rolled == False:
+            self.value = random.randint(1, 6)
+            self.dice.changeText(str(self.value))
+            self.platform.diceRoll(self.value)
 
     def isOver(self, pos):
-        self.dice.isOver(pos)
+        return self.dice.isOver(pos)
 
 class Properties():
     def __init__(self, width, height) -> None:
