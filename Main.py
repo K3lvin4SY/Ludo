@@ -1,3 +1,5 @@
+from dis import dis
+from numpy import isin
 import pygame
 from colors import colors
 from gui import *
@@ -145,7 +147,10 @@ class WindowSystem:
         self.backBtn.draw(scn)
     
     def gameScn(self, scn):
+       
+        self.grid = self.addTextBox(GamePlatform(self.properties, self.display, self.participants))
         self.display = "gs"
+        self.grid.draw(scn)
         # Back Btn
         self.backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x=20, text='Back', command=lambda x="main": self.changeScreen(x)))
         self.backBtn.draw(scn)
@@ -157,7 +162,7 @@ class WindowSystem:
             to (string): gets the string code of a screen.
         """
         if to != self.display: # if screen code id not current
-            if to != self.screens["gs"]:
+            if to != "gs":
                 self.participants = 0
             self.items = {} # Clear items from last Screen
             self.screens[to].enable() # enable requested screen
@@ -208,6 +213,8 @@ class WindowSystem:
         """
         if isinstance(tb, Selection):
             self.items[tb] = [self.display, "select"]
+        elif isinstance(tb, GamePlatform):
+            self.items[tb] = [self.display, "platform"]
         else:
             self.items[tb] = [self.display, "textbox"]
         return tb
@@ -220,22 +227,66 @@ class WindowSystem:
         pass
 
 class GamePlatform:
-    def __init__(self, mode, participants, size) -> None:
+    def __init__(self, properties, mode, participants, centerX=True, centerY=True) -> None:
         self.mode = mode
+        self.properties = properties
         self.participants = participants
-        playerColors = ["Red", "Orange", "Yellow", "Green"]
+        self.centerX = centerX
+        self.centerY = centerY
+        self.playerColors = ["Red", "Orange", "Yellow", "Green"]
         self.players = {}
         if self.mode == "mgo":
             for i in range(self.participants):
-                self.players[playerColors[i]] = Player(playerColors[i])
+                self.players[self.playerColors[i]] = Player(self.playerColors[i])
         elif self.mode == "sgo":
-            self.players[playerColors[0]] = Player(playerColors[0])
+            self.players[self.playerColors[0]] = Player(self.playerColors[0])
             for i in range(self.participants):
-                self.players[playerColors[i+1]] = Player(playerColors[i+1], bot=True)
+                self.players[self.playerColors[i+1]] = Player(self.playerColors[i+1], bot=True)
+        with open('map.json') as file:
+            self.mapData = json.load(file)
 
         
     
-    def draw(self, display, size):
+    def draw(self, display):
+        self.gridSize = self.mapData["dimentions"]
+
+        
+        def getCoords(cor, gridSize=self.gridSize):
+            y= int(((cor-1))/(gridSize-1)*(self.properties.height-gridSize*8) - (self.properties.height-gridSize*8)/2)
+            return y
+        tbSize = int(self.properties.height/self.gridSize)-5
+        tiles = []
+        for gridData in self.mapData["map"]:
+            x = getCoords(self.mapData["map"][gridData][0])
+            y = getCoords(self.mapData["map"][gridData][1])
+            gridNum = gridData.split("-")[0]
+            gridType = gridData.split("-")[1]
+            for i in range(self.mapData["participants"]):
+                i += 1
+                if gridType[-1] == str(i):
+                    color = colors[self.playerColors[i-1]]
+                    break
+                else:
+                    color = colors["DarkGrey"]
+            tile = TextBox(self.properties, tbSize, tbSize, self.centerX, self.centerY, x, y, color)
+            tile.draw(display)
+            tiles.append(tile)
+        for gridData in self.mapData["map-end"]:
+            x = getCoords(self.mapData["map-end"][gridData][0])
+            y = getCoords(self.mapData["map-end"][gridData][1])
+            gridType = gridData.split("-")[1]
+            for i in range(self.mapData["participants"]):
+                i += 1
+                if gridType[-1] == str(i):
+                    color = colors[self.playerColors[i-1]]
+                    break
+                else:
+                    color = colors["DarkGrey"]
+            tile = TextBox(self.properties, tbSize, tbSize, self.centerX, self.centerY, x, y, color)
+            tile.draw(display)
+            pass
+        return tiles
+
         pass
 
 class Player():
@@ -244,12 +295,11 @@ class Player():
         self.bot = bot
         self.pawns = []
         for i in range(4):
-            self.pawns.append(Pawn(self, self.color))
+            self.pawns.append(Pawn(self.color))
         pass
 
-class Pawn(Player):
-    def __init__(self, parent, color) -> None:
-        super().__init__(self, parent)
+class Pawn():
+    def __init__(self, color) -> None:
         self.color = color
         pass
 
