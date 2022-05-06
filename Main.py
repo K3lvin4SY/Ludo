@@ -1,5 +1,4 @@
-from dis import dis
-from numpy import isin
+import random
 import pygame
 from colors import colors
 from gui import *
@@ -112,7 +111,7 @@ class WindowSystem:
         self.titleTB.draw(scn)
 
         # Player selection
-        self.botsSelect = self.addTextBox(Selection(self.properties, ["1", "2", "3", "4"], True, True, title="Players:"))
+        self.botsSelect = self.addTextBox(Selection(self.properties, ["2", "3", "4"], True, True, title="Players:"))
         self.botsSelect.draw(scn, 40)
 
         # Start Btn
@@ -223,6 +222,8 @@ class WindowSystem:
         if self.participants == 0:
             return
         print("Starting Game along with " + str(self.participants) + " participants!")
+        if self.display == "sgo":
+            self.participants += 1
         self.changeScreen("gs")
         pass
 
@@ -235,12 +236,15 @@ class GamePlatform:
         self.centerY = centerY
         self.playerColors = ["Red", "Orange", "Yellow", "Green"]
         self.players = {}
+        self.tiles = {}
+        self.endTiles = {}
+        self.bases = {}
         if self.mode == "mgo":
             for i in range(self.participants):
                 self.players[self.playerColors[i]] = Player(self.playerColors[i])
         elif self.mode == "sgo":
             self.players[self.playerColors[0]] = Player(self.playerColors[0])
-            for i in range(self.participants):
+            for i in range(self.participants-1):
                 self.players[self.playerColors[i+1]] = Player(self.playerColors[i+1], bot=True)
         with open('map.json') as file:
             self.mapData = json.load(file)
@@ -249,45 +253,138 @@ class GamePlatform:
     
     def draw(self, display):
         self.gridSize = self.mapData["dimentions"]
-
+        self.display = display
         
         def getCoords(cor, gridSize=self.gridSize):
+            """converts grid cordinates to screen cordinates
+
+            Args:
+                cor (int): x or y grid cordinates
+                gridSize (int, optional): the size of the grid. Defaults to self.gridSize.
+
+            Returns:
+                int: the converted cordinate x or y
+            """
             y= int(((cor-1))/(gridSize-1)*(self.properties.height-gridSize*8) - (self.properties.height-gridSize*8)/2)
             return y
         tbSize = int(self.properties.height/self.gridSize)-5
-        tiles = []
+        
+        # adds the public road
         for gridData in self.mapData["map"]:
             x = getCoords(self.mapData["map"][gridData][0])
-            y = getCoords(self.mapData["map"][gridData][1])
+            y = getCoords(self.mapData["map"][gridData][1])*-1
             gridNum = gridData.split("-")[0]
             gridType = gridData.split("-")[1]
             for i in range(self.mapData["participants"]):
                 i += 1
-                if gridType[-1] == str(i):
+                if gridType[-1] == str(i) and i <= self.participants:
                     color = colors[self.playerColors[i-1]]
                     break
                 else:
                     color = colors["DarkGrey"]
-            tile = TextBox(self.properties, tbSize, tbSize, self.centerX, self.centerY, x, y, color)
-            tile.draw(display)
-            tiles.append(tile)
+            tile = Tile(self.properties, tbSize, tbSize, self.centerX, self.centerY, x, y, color, gridData)
+            tileInfo = tile.draw(display)
+            self.tiles[tileInfo[0]] = tileInfo[1]
+
+        # adds private roads  
         for gridData in self.mapData["map-end"]:
             x = getCoords(self.mapData["map-end"][gridData][0])
-            y = getCoords(self.mapData["map-end"][gridData][1])
+            y = getCoords(self.mapData["map-end"][gridData][1])*-1
             gridType = gridData.split("-")[1]
+            if gridType[-1] == "S" or int(gridType[-1]) <= self.participants:
+                for i in range(self.mapData["participants"]):
+                    i += 1
+                    if gridType[-1] == str(i):
+                        color = colors[self.playerColors[i-1]]
+                        break
+                    else:
+                        color = colors["White"]
+                tile = Tile(self.properties, tbSize, tbSize, self.centerX, self.centerY, x, y, color, gridData)
+                tileInfo = tile.draw(display)
+                self.endTiles[tileInfo[0]] = tileInfo[1]
+
+        # adds the home bases
+        for gridData in self.mapData["map-base"]:
+            x = getCoords(self.mapData["map-base"][gridData][0])
+            y = getCoords(self.mapData["map-base"][gridData][1])*-1
+            gridType = gridData
             for i in range(self.mapData["participants"]):
                 i += 1
                 if gridType[-1] == str(i):
-                    color = colors[self.playerColors[i-1]]
-                    break
+                    if (i <= self.participants):
+                        color = colors[self.playerColors[i-1]]
+                        break
+                    else:
+                        color = colors["Secondary"]
+                        break
                 else:
-                    color = colors["DarkGrey"]
-            tile = TextBox(self.properties, tbSize, tbSize, self.centerX, self.centerY, x, y, color)
-            tile.draw(display)
-            pass
-        return tiles
+                    color = colors["White"]
+            if color != colors["Secondary"]:
+                tile = Tile(self.properties, tbSize*2, tbSize*2, self.centerX, self.centerY, x, y, color, gridData)
+                tileInfo = tile.draw(display)
+                self.bases[tileInfo[0]] = tileInfo[1]
+        
+        # set pawn home
+        baseNum = 0
+        for player in self.players.values():
+            baseNum += 1
+            player.givePawnsInfo(self.bases["b"+str(baseNum)], display, self.properties)
 
         pass
+
+class Tile:
+    def __init__(self, properties, width, height, centerX=False, centerY=False, x=0 , y=0, color=(255,255,0), gridData="") -> None:
+        self.properties = properties
+        self.width = width
+        self.height = height
+        self.centerX = centerX
+        self.centerY = centerY
+        self.x = x
+        self.y = y
+        self.color = color
+        self.pawn = None
+        self.gridData = gridData
+        if not gridData[0].lower() == "b":
+            self.gridNum = int(gridData.split("-")[0])
+            self.gridType = gridData.split("-")[1]
+        else:
+            self.gridNum = 0
+            self.gridType = gridData
+        self.tile = TextBox(self.properties, self.width, self.height, self.centerX, self.centerY, self.x, self.y, self.color)
+    
+    def draw(self, display):
+        self.tile.draw(display)
+        return [self.gridData, self]
+    
+    def addPawn(self, pawn):
+        if not self.gridData[0].lower() == "b":
+            if self.pawn != None:
+                self.pawn.sendHome()
+            self.pawn = pawn
+        else:
+            if self.pawn == None:
+                self.pawn = []
+            self.pawn.append(pawn)
+        
+    def getPawnHomeCordinates(self, pawn):
+        offsetCoords = {0:(-30, -30), 1:(-30, 30), 2:(30, -30), 3:(30, 30)}
+        index = self.pawn.index(pawn)
+        x = self.x + offsetCoords[index][0]
+        y = self.y + offsetCoords[index][1]
+        return x, y
+        
+    def getPawnCordinates(self):
+        x = self.x
+        y = self.y
+        return x, y
+
+    
+    def removePawn(self, pawn=None):
+        if not self.gridData[0].lower() == "b":
+            self.pawn = None
+        else:
+            if pawn in self.pawn:
+                del self.pawn[pawn]
 
 class Player():
     def __init__(self, color, bot=False) -> None:
@@ -297,12 +394,54 @@ class Player():
         for i in range(4):
             self.pawns.append(Pawn(self.color))
         pass
+    def givePawnsInfo(self, home, display, properties):
+        for pawn in self.pawns:
+            pawn.setHome(home)
+            pawn.draw(display, properties)
 
 class Pawn():
     def __init__(self, color) -> None:
         self.color = color
         pass
 
+    def draw(self, display, properties):
+        self.properties = properties
+        self.pawn = TextBox(properties, 30, 30, True, True, self.x, self.y, colors[self.color])
+        self.pawn.draw(display, colors["White"])
+
+    def setHome(self, home):
+        self.home = home
+        home.addPawn(self)
+        (self.x, self.y) = home.getPawnHomeCordinates(self)
+        (self.ox, self.oy) = (self.x, self.y)
+
+    def sendHome(self):
+        self.home.addPawn(self)
+        (self.x, self.y) = (self.ox, self.oy)
+        pass
+
+class Dice:
+    def __init__(self, properties, width, height, centerX=True, centerY=True, x=0 , y=0, color=colors["White"]) -> None:
+        self.properties = properties
+        self.width = width
+        self.height = height
+        self.centerX = centerX
+        self.centerY = centerY
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 6
+        self.dice = TextBox(self.properties, self.width, self.height, centerX, centerY, self.x, self.y, self.color, str(self.value), command=lambda: self.roll())
+    
+    def draw(self, display):
+        self.dice.draw(display)
+    
+    def roll(self):
+        self.value = random.randint(1, 6)
+        self.dice.changeText(str(self.value))
+
+    def isOver(self, pos):
+        self.dice.isOver(pos)
 
 class Properties():
     def __init__(self, width, height) -> None:

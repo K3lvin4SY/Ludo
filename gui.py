@@ -212,6 +212,10 @@ class TextBox():
         self.hoverColor = color
         self.draw(self.display, self.outline, self.size)
 
+    def changeText(self, text):
+        self.text = str(text)
+        self.draw(self.display, self.outline, self.size)
+
     def isOver(self, pos):
         """if mouse is over textbox:
         * change pointer
