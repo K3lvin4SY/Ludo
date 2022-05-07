@@ -371,24 +371,27 @@ class GamePlatform:
     
     def nextPlayer(self, dice):
         self.rolled = False
-        index = self.players.values().index(self.turn)
-        if dice == 1:
-            self.playerDisplay.changeText(self.players.keys()[index] + ", Roll the Dice Again")
+        index = list(self.players.values()).index(self.turn)
+        if dice == 6:
+            self.playerDisplay.changeText(list(self.players.keys())[index] + ", Roll the Dice Again")
             return self.turn
         try:
-            self.turn = self.players.values()[index+1]
-            self.playerDisplay.changeColor(colors[self.players.keys()[index+1]])
-            self.playerDisplay.changeText(self.players.keys()[index+1] + ", Roll the Dice")
+            self.turn = list(self.players.values())[index+1]
+            self.playerDisplay.changeColor(colors[list(self.players.keys())[index+1]])
+            self.playerDisplay.changeText(list(self.players.keys())[index+1] + ", Roll the Dice")
         except:
-            self.turn = self.players.values()[0]
-            self.playerDisplay.changeColor(colors[self.players.keys()[0]])
-            self.playerDisplay.changeText(self.players.keys()[0] + ", Roll the Dice")
+            self.turn = list(self.players.values())[0]
+            self.playerDisplay.changeColor(colors[list(self.players.keys())[0]])
+            self.playerDisplay.changeText(list(self.players.keys())[0] + ", Roll the Dice")
         return self.turn
     
     def diceRoll(self, value):
         self.rolled = True
         if len(self.turn.home.pawn) == 4:
-            self.playerDisplay.changeText(self.turn.color + ", Pick a Pawn")
+            if value == 1 or value == 6:
+                self.playerDisplay.changeText(self.turn.color + ", Pick a Pawn")
+            else:
+                self.nextPlayer(value)
             return
         
 
@@ -405,7 +408,7 @@ class PlayerDisplay:
         self.text = text
         self.textColor = textColor
         self.turnMonitor = TextBox(self.properties, self.width, self.height, self.centerX, self.centerY, self.x, self.y, self.color)
-        self.turnMessage = TextBox(self.properties, self.width*4, self.height*1, self.centerX, self.centerY, self.x, int(self.y+self.width*1.5), colors["Secondary"], self.text, textColor=self.textColor)
+        self.turnMessage = TextBox(self.properties, self.width*6, self.height*1, self.centerX, self.centerY, self.x, int(self.y+self.width*2.5), colors["Secondary"], self.text, textColor=self.textColor)
     
     def draw(self, scn, size):
         self.size = size
@@ -441,8 +444,14 @@ class Tile:
         self.tile = TextBox(self.properties, self.width, self.height, self.centerX, self.centerY, self.x, self.y, self.color)
     
     def draw(self, display):
+        self.display = display
         self.tile.draw(display)
-        return [self.gridType, self]
+        if self.gridType[0].lower() =="b":
+            return [self.gridType, self]
+        elif self.gridType[0].lower() =="s":
+            return [self.gridData, self]
+        else:
+            return [self.gridNum, self]
     
     def addPawn(self, pawn):
         if not self.gridData[0].lower() == "b":
@@ -472,7 +481,14 @@ class Tile:
             self.pawn = None
         else:
             if pawn in self.pawn:
-                del self.pawn[pawn]
+                self.pawn.remove(pawn)
+        self.update()
+
+    def update(self):
+        self.tile.draw(self.display)
+        if self.gridType[0].lower() == "b":
+            for pawn in self.pawn:
+                pawn.update()
 
 class Player():
     def __init__(self, color, platform, bot=False) -> None:
@@ -497,18 +513,22 @@ class Pawn():
 
     def draw(self, display, properties):
         self.properties = properties
+        self.display = display
         self.pawn = TextBox(properties, 30, 30, True, True, self.x, self.y, colors[self.color], command=lambda: self.clicked())
         self.pawn.draw(display, colors["White"])
 
     def setHome(self, home):
         self.home = home
         home.addPawn(self)
+        self.tile = home
         (self.x, self.y) = home.getPawnHomeCordinates(self)
         (self.ox, self.oy) = (self.x, self.y)
 
     def sendHome(self):
-        (self.x, self.y) = (self.ox, self.oy) # maybe move this 1 line down?
+        
         self.home.addPawn(self)
+        (self.x, self.y) = (self.ox, self.oy) # maybe move this 1 line down?
+        self.home.update()
 
     def isOver(self, pos):
         return self.pawn.isOver(pos)
@@ -516,14 +536,46 @@ class Pawn():
     def clicked(self):
         if self.platform.turn == self.player: # players turn
             if self.platform.rolled == True: # player has rolled dice
+                if self.tile == self.home and (self.platform.dice.value not in [6, 1]):
+                    return
                 # move pawn
-                self.movePawn(self.home.gridNum, self.platform.dice.value)
+                self.movePawn(self.tile.gridNum, self.platform.dice.value)
                 pass
     
     def movePawn(self, prevLocation, diceValue):
+        location = prevLocation
+        stepsLeft = 0
+        playerNum = self.platform.playerColors.index(self.color)+1
         for i in range(diceValue):
-            if self.platform.tiles[prevLocation].gridType[-1] == self.platform.playerColors.index(self.color)+1: # if tile standing on is players entry or exit
-                self.platform.tiles[prevLocation+1]
+            if location != 0:
+                if self.platform.tiles[location].gridType[-1] == playerNum: # if tile standing on is players entry or exit
+                    if self.platform.tiles[location].gridType[0].lower() == "x":
+                        stepsLeft = diceValue - i+1
+                        break
+            else:
+                for tile in self.platform.tiles.values():
+                    if tile.gridType.lower() == "e"+str(playerNum):
+                        location = tile.gridNum
+                        break
+                break
+            location += 1
+            if location == list(self.platform.tiles.keys())[-1]+1:
+                location = 1
+        if stepsLeft == 0:
+            self.tile.update()
+            self.platform.tiles[location].addPawn(self)
+            self.tile.removePawn(self)
+            self.tile = self.platform.tiles[location]
+            self.x = self.platform.tiles[location].x
+            self.y = self.platform.tiles[location].y
+            self.draw(self.display, self.properties)
+        else:
+            pass # code for exit tiles here
+
+        self.platform.nextPlayer(diceValue)
+    
+    def update(self):
+        self.draw(self.display, self.properties)
 
 
 class Dice:
