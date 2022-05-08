@@ -144,6 +144,9 @@ class GamePlatform:
         return tempDict
 
     def nextPlayer(self, dice):
+        if len(self.turn.pawnsOut) == 4:
+            # self.turn won the game
+            return
         self.rolled = False
         index = list(self.players.values()).index(self.turn)
         if dice == 6:
