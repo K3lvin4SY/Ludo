@@ -294,6 +294,7 @@ class Pawn():
         self.color = color
         self.platform = platform
         self.player = player
+        self.out = False
         pass
 
     def draw(self, display, properties):
@@ -317,7 +318,8 @@ class Pawn():
         self.home.update()
 
     def isOver(self, pos):
-        return self.pawn.isOver(pos)
+        if self.out == False:
+            return self.pawn.isOver(pos)
 
     def clicked(self):
         if self.platform.turn == self.player: # players turn
@@ -359,26 +361,36 @@ class Pawn():
             self.y = self.platform.tiles[location].y
             self.draw(self.display, self.properties)
         else:
-            endLocation = location
+            
             endTiles = self.platform.getEndTiles(self.color)
+            for til in self.platform.tiles:
+                    if self.platform.tiles[til].gridType.lower() == "x"+str(playerNum):
+                        gridNum = til
+            endLocation = gridNum - location
+            loc = endLocation
             def getRange():
                 if self.tile.gridType[0].lower() == "s":
                     return range(location, location + stepsLeft)
                 else:
-                    return range(stepsLeft)
+                    return range(endLocation, endLocation + stepsLeft)
             for i in getRange():
                 i += 1
                 endLocation = i
                 if endLocation == list(endTiles)[-1]:
-                    if i == stepsLeft:
+                    if i == stepsLeft + loc:
                         # pawn out of game
                         self.player.takeOutPawn(self)
-                        
-                        break
+                        self.tile.removePawn(self)
+                        self.tile.update()
+                        self.out = True
+                        self.platform.nextPlayer(diceValue)
+                        return
                 if endLocation >= list(endTiles)[-1]:
                     endLocation = (list(endTiles)[-2]*2)-endLocation
-            if endLocation < 0:
-                endLocation = location + endLocation
+            if endLocation <= 0:
+                for til in self.platform.tiles:
+                    if self.platform.tiles[til].gridType.lower() == "x"+str(playerNum):
+                        endLocation = til - (endLocation*-1)
                 self.platform.tiles[endLocation].addPawn(self)
                 self.tile.removePawn(self)
                 self.tile.update()
