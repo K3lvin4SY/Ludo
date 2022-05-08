@@ -42,13 +42,17 @@ class Selection():
         self.items = []
         self.size = size
         if self.title != None:
+            # Title text for selector
             self.title = TextBox(self.properties, len(self.title)*self.size*1.5, self.size, self.centerX, self.centerY, self.x, self.y-50, colors["Secondary"], text=self.title, textColor=colors["White"])
             self.title.draw(display)
             self.items.append(self.title)
+        # the border for all the selection options
         self.border = TextBox(self.properties, len(self.text)*self.size*1.5, self.size, centerX=self.centerX, centerY=self.centerY, y=self.y, x=self.x, color=colors["Secondary"], hoverColor=self.hoverColor)
         self.border.draw(display, outline=self.color)
         self.items.append(self.border)
+        # the selection options
         for sel in self.text:
+            # formula for x cordinate
             xPosAdjustment = int((len(self.text)*self.size-self.size*0.2)*(self.text.index(sel)/(len(self.text)-1)) - (len(self.text)*self.size-self.size*0.2)/2)
             opt = TextBox(self.properties, self.size*0.8, self.size*0.6, self.centerX, self.centerY, self.x + xPosAdjustment, self.y, color=colors["DarkGrey"], text=sel, command=lambda x=sel: self.updateValue(x))
             opt.draw(display, self.color, self.size)
@@ -65,13 +69,12 @@ class Selection():
         """
         self.value = val
         for it in self.items:
-            if it == self.border or it == self.title:
+            if it == self.border or it == self.title: # if looped item is border or the title
                 continue
             elif val == it.text:
-                it.changeColor(colors["White"])
+                it.changeColor(colors["White"]) # selected
                 continue
-            it.changeColor(colors["DarkGrey"])
-        print(self.value)
+            it.changeColor(colors["DarkGrey"]) # not selected
         return int(self.value)
 
     
@@ -92,7 +95,7 @@ class Selection():
                 bool: true, if mouse is over one of the selection options
             """
             for it in list:
-                if it == self.border or it == self.title:
+                if it == self.border or it == self.title: # if looped item is border or the title
                     continue
                 if it.isOver(pos):
                     return True
@@ -194,7 +197,7 @@ class TextBox():
         if outline:
             pygame.draw.rect(display, outline, (self.x-2,self.y-2,self.width+4,self.height+4), 0, border_radius=9)
             
-        pygame.draw.rect(display, self.color, (self.x,self.y,self.width,self.height), 0, border_radius=8)
+        pygame.draw.rect(display, self.color, (self.x,self.y,self.width,self.height), 0, border_radius=8) # draw rectangle
         
         if self.text != '':
             font = pygame.font.SysFont('marvel', size)
@@ -213,8 +216,13 @@ class TextBox():
         self.draw(self.display, self.outline, self.size)
 
     def changeText(self, text):
-        self.text = str(text)
-        self.draw(self.display, self.outline, self.size)
+        """method for changeing text on textbox
+
+        Args:
+            text (string): the new text to display
+        """
+        self.text = str(text) # updates text to new
+        self.draw(self.display, self.outline, self.size) # draws the updated version
 
     def isOver(self, pos):
         """if mouse is over textbox:
@@ -228,13 +236,13 @@ class TextBox():
         Returns:
             bool: true, if mouse is over textbox
         """ 
-        #Pos is the mouse position or a tuple of (x,y) coordinates
-        if pos[0] > self.x and pos[0] < self.x + self.width:
-            if pos[1] > self.y and pos[1] < self.y + self.height:
+        # Pos is the mouse position or a tuple of (x,y) coordinates
+        if pos[0] > self.x and pos[0] < self.x + self.width: # if mouse is in x cordinate intervall
+            if pos[1] > self.y and pos[1] < self.y + self.height: # if mouse is in y cordinate intervall
                 if self.hover == False:
                     self.color = self.hoverColor
                     self.draw(self.display, self.outline, self.size)
-                    if self.command != None:
+                    if self.command != None: # if textbox have a command
                         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                     self.hover = True
                 return True

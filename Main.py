@@ -7,10 +7,23 @@ pygame.init()
 
 #https://www.petercollingridge.co.uk/tutorials/pygame-physics-simulation/creating-pygame-window/
 
+#Största källan till min kod nedan:
+#https://www.youtube.com/watch?v=OydU03jMXQo
+
 
 #https://www.youtube.com/watch?v=aqhp_-CbE_w
 class Screen():
+    """The class for each screen.
+    """
     def __init__(self, title, width=1280, height=720, fill=colors["Secondary"]) -> None:
+        """creates the new screen by aplying some values
+
+        Args:
+            title (string): the window title
+            width (int, optional): the width of the screen. Defaults to 1280.
+            height (int, optional): the height od the screen. Defaults to 720.
+            fill (tuple, optional): bg color of screen. Defaults to colors["Secondary"].
+        """
         
         self.properties = Properties(width, height)
 
@@ -21,15 +34,24 @@ class Screen():
         self.enabled = False
     
     def enable(self):
-        pygame.display.set_caption(self.title)
-        self.enabled = True
-        self.screen = pygame.display.set_mode((self.width, self.height))
-        self.screen.fill(self.fill)
+        """enables the screen by changing the window title and changing self variables
+        """
+        pygame.display.set_caption(self.title) # updates window title
+        self.enabled = True # turns to enabled
+        self.screen = pygame.display.set_mode((self.width, self.height)) # updates width and height
+        self.screen.fill(self.fill) # upddates bg
 
     def disable(self):
+        """disable screen
+        """
         self.enabled = False
     
     def checkState(self):
+        """to check the status of a screen (enabled or disavbled)
+
+        Returns:
+            bool: true if screen is enabled
+        """
         return self.enabled
 
     def update(self):
