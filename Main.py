@@ -57,19 +57,22 @@ class WindowSystem:
         sGameOptionsScreen = Screen("Singleplayer Game Options")
         mGameOptionsScreen = Screen("Multiplayer Game Options")
         gameScreen = Screen("Game")
+        endScreen = Screen("End Screen")
 
         self.screens = {
             "main":startScreen,
             "sgo":sGameOptionsScreen,
             "mgo":mGameOptionsScreen,
-            "gs":gameScreen
+            "gs":gameScreen,
+            "es":endScreen
         }
 
         self.screensFunc = {
             "main":self.main,
             "sgo":self.singleGameOptScn,
             "mgo":self.multiGameOptScn,
-            "gs":self.gameScn
+            "gs":self.gameScn,
+            "es":self.endScn
         }
 
         startScreen.enable()
@@ -97,6 +100,10 @@ class WindowSystem:
         self.multiPlayerBtn = self.addTextBox(TextBox(self.properties, 230, 60, centerX=True, centerY=True, y=100, text='Multiplayer', color=colors["DarkGrey"], hoverColor=colors["White"], command=lambda x="mgo": self.changeScreen(x)))
         
         self.multiPlayerBtn.draw(scn, outline=colors["Primary1"], size=40)
+
+        # Quit Btn
+        self.backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x=20, text='Quit', command=lambda: self.quitGame()))
+        self.backBtn.draw(scn)
 
     def multiGameOptScn(self, scn):
         """GUI for multiplayer options
@@ -143,13 +150,24 @@ class WindowSystem:
         # Back Btn
         self.backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x=20, text='Back', command=lambda x="main": self.changeScreen(x)))
         self.backBtn.draw(scn)
+    
     def gameScn(self, scn):
        
-        self.grid = self.addTextBox(GamePlatform(self.properties, self.display, self.participants))
+        self.grid = self.addTextBox(GamePlatform(self.properties, self.display, self.participants, self))
         self.display = "gs"
         self.grid.draw(scn, self.display)
         # Quit Btn
         self.backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x=20, text='Quit', command=lambda x="main": self.changeScreen(x)))
+        self.backBtn.draw(scn)
+    
+    def endScn(self, scn):
+        self.display = "es"
+
+        self.backBtn = self.addTextBox(TextBox(self.properties, 500, 60, color=colors["Primary1"], centerX=True, centerY=True, y=0, x=0, text=self.winner + ' has won the game!'))
+        self.backBtn.draw(scn)
+
+        # Back Btn
+        self.backBtn = self.addTextBox(TextBox(self.properties, 250, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x=20, text='Back', command=lambda x="main": self.changeScreen(x)))
         self.backBtn.draw(scn)
 
     def changeScreen(self, to):
@@ -166,6 +184,9 @@ class WindowSystem:
             self.screens[self.display].disable() # disable current
             self.screensFunc[to](self.screens[to].getTitle()) # activate new screen
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+    
+    def quitGame(self):
+        self.running = False
     
     def update(self, event): # method that gets called aas quicly as possible (main loop)
         
@@ -236,6 +257,10 @@ class WindowSystem:
             self.participants += 1
         self.changeScreen("gs")
         pass
+
+    def setWinner(self, playerColor):
+        self.winner = playerColor
+        self.changeScreen("es")
 
 
 

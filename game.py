@@ -4,7 +4,7 @@ import json
 from gui import *
 
 class GamePlatform:
-    def __init__(self, properties, mode, participants, centerX=True, centerY=True) -> None:
+    def __init__(self, properties, mode, participants, system, centerX=True, centerY=True) -> None:
         self.mode = mode
         self.properties = properties
         self.participants = participants
@@ -14,6 +14,7 @@ class GamePlatform:
         self.tiles = {}
         self.endTiles = {}
         self.bases = {}
+        self.system = system
         with open('map.json') as file:
             self.mapData = json.load(file)
         self.playerColors = self.mapData["colors"]
@@ -144,11 +145,12 @@ class GamePlatform:
         return tempDict
 
     def nextPlayer(self, dice):
+        index = list(self.players.values()).index(self.turn)
         if len(self.turn.pawnsOut) == 4:
             # self.turn won the game
+            self.system.setWinner(list(self.players.keys())[index])
             return
         self.rolled = False
-        index = list(self.players.values()).index(self.turn)
         if dice == 6:
             self.playerDisplay.changeText(list(self.players.keys())[index] + ", Roll the Dice Again")
             return self.turn
@@ -170,7 +172,7 @@ class GamePlatform:
             else:
                 self.nextPlayer(value)
             return
-        elif len(self.turn.home.pawn) == 3 and len(self.turn.pawnsOut) < 1:
+        elif len(self.turn.home.pawn) + len(self.turn.pawnsOut) == 3:
             if value == 1 or value == 6:
                 self.playerDisplay.changeText(self.turn.color + ", Pick a Pawn")
             else:
@@ -370,7 +372,11 @@ class Pawn():
                     if self.platform.tiles[til].gridType.lower() == "x"+str(playerNum):
                         gridNum = til
             endLocation = gridNum - location
-            loc = endLocation
+            
+            if self.tile.gridType[0].lower() == "s":
+                loc = location
+            else:
+                loc = endLocation
             def getRange():
                 if self.tile.gridType[0].lower() == "s":
                     return range(location, location + stepsLeft)
