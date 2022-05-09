@@ -55,10 +55,17 @@ class Screen():
         return self.enabled
 
     def update(self):
+        """
+        If the button is not enabled, fill the screen
+        """
         if not self.enabled:
             self.screen.fill(self.fill)
         
     def getTitle(self):
+        """
+        This function returns the screen name
+        :return: The screen
+        """
         return self.screen
 
 class WindowSystem:
@@ -113,6 +120,11 @@ class WindowSystem:
                     self.running = False
     
     def main(self, scn):
+        """
+        It creates buttons that when clicked, changes the screen to other screens.
+        
+        :param scn: The screen to draw the textboxes on
+        """
         
         self.display = "main"
         self.titleTB = self.addTextBox(TextBox(self.properties, 500, 70, centerX=True, y=100, text='Ludo', color=colors["Primary2"]))
@@ -174,6 +186,11 @@ class WindowSystem:
         self.backBtn.draw(scn)
     
     def gameScn(self, scn):
+        """
+        It creates a new instance of the GamePlatform class, and other buttons
+        
+        :param scn: The scene to draw the grid on
+        """
        
         self.grid = self.addTextBox(GamePlatform(self.properties, self.display, self.participants, self))
         self.display = "gs"

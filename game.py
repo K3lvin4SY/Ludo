@@ -29,6 +29,7 @@ class GamePlatform:
         with open('map.json') as file:
             self.mapData = json.load(file)
         self.playerColors = self.mapData["colors"]
+        # Creating a player object for each player in the game.
         if self.mode == "mgo":
             for i in range(self.participants):
                 self.players[self.playerColors[i]] = Player(self.playerColors[i], self)
@@ -68,6 +69,7 @@ class GamePlatform:
         tbSize = int(self.properties.height/self.gridSize)-5
         
         # adds the public road
+        # Creating a tile object for each tile on the board.
         for gridData in self.mapData["map"]:
             x = getCoords(self.mapData["map"][gridData][0])
             y = getCoords(self.mapData["map"][gridData][1])*-1
@@ -84,7 +86,7 @@ class GamePlatform:
             tileInfo = tile.draw(scn)
             self.tiles[tileInfo[0]] = tileInfo[1]
 
-        # adds private roads  
+        # adds private roads
         for gridData in self.mapData["map-end"]:
             x = getCoords(self.mapData["map-end"][gridData][0])
             y = getCoords(self.mapData["map-end"][gridData][1])*-1
@@ -190,12 +192,16 @@ class GamePlatform:
         :param dice: the number that was rolled
         :return: The next player in the game.
         """
+        # Checking if the player has won the game.
         index = list(self.players.values()).index(self.turn)
         if len(self.turn.pawnsOut) == 4:
             # self.turn won the game
             self.system.setWinner(list(self.players.keys())[index])
             return
         self.rolled = False
+       # Checking if the dice is 6, if it is, it will return the turn. If it is not, it will try to
+       # change the turn to the next player. If it cannot, it will change the turn to the first
+       # player.
         if dice == 6:
             self.playerDisplay.changeText(list(self.players.keys())[index] + ", Roll the Dice Again")
             return self.turn
@@ -527,6 +533,11 @@ class Pawn():
         location = prevLocation
         stepsLeft = 0
         playerNum = self.platform.playerColors.index(self.color)+1 # gets the player num (id) ex: red = 1, orange = 2, green = 4
+        # Checking if the tile is a s or not. If it is not a s, it will check if the tile is
+        # the player's entry or exit. If it is the player's entry or exit, it will check if it is the
+        # exit. If it is the exit, it will break the loop. If it is not the exit, it will continue the
+        # loop. If the tile is not the player's entry or exit, it will continue the loop. If the
+        # location is over the maximum tile, it will set the location to 1.
         if not self.tile.gridType[0].lower() == "s":
             for i in range(diceValue):
                 if location != 0:
@@ -545,6 +556,7 @@ class Pawn():
                     location = 1
         else:
             stepsLeft = diceValue
+        # Moving the pawn to the new location. (code used when moving on public road)
         if stepsLeft == 0:
             self.platform.tiles[location].addPawn(self)
             self.tile.removePawn(self)
@@ -570,6 +582,7 @@ class Pawn():
                     return range(location, location + stepsLeft)
                 else:
                     return range(endLocation, endLocation + stepsLeft)
+            # Moving pawn on private roads
             for i in getRange():
                 i += 1
                 endLocation = i
@@ -584,6 +597,7 @@ class Pawn():
                         return
                 if endLocation >= list(endTiles)[-1]:
                     endLocation = (list(endTiles)[-2]*2)-endLocation
+            # Moving the pawn to the end location.
             if endLocation <= 0:
                 for til in self.platform.tiles:
                     if self.platform.tiles[til].gridType.lower() == "x"+str(playerNum):
@@ -595,6 +609,7 @@ class Pawn():
                 self.x = self.platform.tiles[endLocation].x
                 self.y = self.platform.tiles[endLocation].y
                 self.draw(self.display, self.properties)
+            # Moving the pawn to the end tile.
             else:
                 endTiles[endLocation].addPawn(self)
                 self.tile.removePawn(self)
@@ -603,8 +618,6 @@ class Pawn():
                 self.x = endTiles[endLocation].x
                 self.y = endTiles[endLocation].y
                 self.draw(self.display, self.properties)
-
-            pass # code for exit tiles here
 
         self.platform.nextPlayer(diceValue)
     
