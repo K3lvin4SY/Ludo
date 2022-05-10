@@ -4,7 +4,7 @@ from colors import colors
 class Selection():
     """class for creating a selection
     """
-    def __init__(self, properties, text, centerX=False, centerY=False, x=0 , y=0, color=colors["Primary1"], hoverColor=None, title=None) -> None:
+    def __init__(self, properties, text, centerX=False, centerY=False, x=0 , y=0, color=colors["Primary1"], hoverColor=None, title=None, numMode=False) -> None:
         """initiates the creation of the selection but does not draw it down on screen
 
         Args:
@@ -23,13 +23,17 @@ class Selection():
         self.centerY = centerY
         self.y = y
         self.color = color
-        self.text = text
         if hoverColor != None:
             self.hoverColor = hoverColor
         else:
             self.hoverColor = colors["Secondary"]
         self.properties = properties
         self.title=title
+        self.numMode = numMode
+        if self.numMode:
+            self.text = ["<", text, ">"]
+        else:
+            self.text = text
     
     def draw(self, display, size):
         """draws and places the selection on screen
@@ -54,7 +58,10 @@ class Selection():
         for sel in self.text:
             # formula for x cordinate
             xPosAdjustment = int((len(self.text)*self.size-self.size*0.2)*(self.text.index(sel)/(len(self.text)-1)) - (len(self.text)*self.size-self.size*0.2)/2)
-            opt = TextBox(self.properties, self.size*0.8, self.size*0.6, self.centerX, self.centerY, self.x + xPosAdjustment, self.y, color=colors["DarkGrey"], text=sel, command=lambda x=sel: self.updateValue(x))
+            if sel not in ["<", ">"] and self.numMode:
+                opt = TextBox(self.properties, self.size*0.8, self.size*0.6, self.centerX, self.centerY, self.x + xPosAdjustment, self.y, color=colors["DarkGrey"], text=sel)
+            else:
+                opt = TextBox(self.properties, self.size*0.8, self.size*0.6, self.centerX, self.centerY, self.x + xPosAdjustment, self.y, color=colors["DarkGrey"], text=sel, command=lambda x=sel: self.updateValue(x))
             opt.draw(display, self.color, self.size)
             self.items.append(opt)
 
@@ -67,16 +74,28 @@ class Selection():
         Returns:
             int: the shoosen value
         """
-        self.value = val
-        for it in self.items:
-            if it == self.border or it == self.title: # if looped item is border or the title
-                continue
-            elif val == it.text:
-                it.changeColor(colors["White"]) # selected
-                continue
-            it.changeColor(colors["DarkGrey"]) # not selected
-        return int(self.value)
+        
+        if not self.numMode:
+            self.value = val
+            for it in self.items:
+                if it == self.border or it == self.title: # if looped item is border or the title
+                    continue
+                elif val == it.text:
+                    it.changeColor(colors["White"]) # selected
+                    continue
+                it.changeColor(colors["DarkGrey"]) # not selected
+            return int(self.value)
+        else:
+            if val == "<":
+                self.items[-2].text = str(int(self.items[-2].text)-1)
+            elif val == ">":
+                self.items[-2].text = str(int(self.items[-2].text)+1)
+            self.update()
 
+    def update(self):
+        for it in self.items:
+            if not (it == self.border or it == self.title):
+                it.draw(self.display, self.color, self.size)
     
     def isOver(self, pos):
         """checks if mouse cordinates is over one off the selction options
@@ -122,6 +141,7 @@ class Selection():
             if it == self.border or it == self.title:
                 continue
             if it.isOver(pos):
+                print(it)
                 return it
         return None
 
@@ -200,7 +220,7 @@ class TextBox():
         pygame.draw.rect(display, self.color, (self.x,self.y,self.width,self.height), 0, border_radius=8) # draw rectangle
         
         if self.text != '':
-            font = pygame.font.SysFont('marvel', size)
+            font = pygame.font.SysFont(None, size)
             text = font.render(self.text, 1, self.textColor)
             display.blit(text, (self.x + (self.width/2 - text.get_width()/2), self.y + (self.height/2 - text.get_height()/2)))
 

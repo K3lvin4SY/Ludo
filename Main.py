@@ -87,13 +87,17 @@ class WindowSystem:
         mGameOptionsScreen = Screen("Multiplayer Game Options")
         gameScreen = Screen("Game")
         endScreen = Screen("End Screen")
+        buildOptScreen = Screen("Map Builder Options")
+        buildScreen = Screen("Map Builder")
 
         self.screens = {
             "main":startScreen,
             "sgo":sGameOptionsScreen,
             "mgo":mGameOptionsScreen,
             "gs":gameScreen,
-            "es":endScreen
+            "es":endScreen,
+            "bso":buildOptScreen,
+            "bs":buildScreen
         }
 
         self.screensFunc = {
@@ -101,7 +105,9 @@ class WindowSystem:
             "sgo":self.singleGameOptScn,
             "mgo":self.multiGameOptScn,
             "gs":self.gameScn,
-            "es":self.endScn
+            "es":self.endScn,
+            "bso":self.buildOptScn,
+            "bs":self.buildScn
         }
 
         startScreen.enable()
@@ -137,6 +143,10 @@ class WindowSystem:
 
         # Quit Btn
         self.backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x=20, text='Quit', command=lambda: self.quitGame()))
+        self.backBtn.draw(scn)
+
+        # Builder Btn
+        self.backBtn = self.addTextBox(TextBox(self.properties, 200, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x="max-20", text='Builder', command=lambda x="bso": self.changeScreen(x)))
         self.backBtn.draw(scn)
 
     def multiGameOptScn(self, scn):
@@ -209,6 +219,33 @@ class WindowSystem:
         self.backBtn = self.addTextBox(TextBox(self.properties, 250, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x=20, text='Back', command=lambda x="main": self.changeScreen(x)))
         self.backBtn.draw(scn)
 
+    def buildOptScn(self, scn):
+        self.display = "bso"
+        # Title
+        self.titleTB = self.addTextBox(TextBox(self.properties, 500, 70, centerX=True, y=100, text='Builder Options - Comming Later', color=colors["Primary2"]))
+        self.titleTB.draw(scn)
+
+        # grid size selection
+        self.gridsize = self.addTextBox(Selection(self.properties, "4", True, True, title="Players:", numMode=True, y=80))
+        self.gridsize.draw(scn, 40)
+
+        # grid size selection
+        self.players = self.addTextBox(Selection(self.properties, "11", True, True, title="Grid Size:", numMode=True, y=-80))
+        self.players.draw(scn, 40)
+
+        # Start Btn
+        self.backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=True, centerY=False, y="max-20", x=0, text='Start'))
+        self.backBtn.draw(scn)
+
+        # Back Btn
+        self.backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x=20, text='Back', command=lambda x="main": self.changeScreen(x)))
+        self.backBtn.draw(scn)
+
+
+
+    def buildScn(self, scn):
+        self.display = "bs"
+
     def changeScreen(self, to):
         """method for changing screens by enabaling the new and disableing the old
 
@@ -260,8 +297,12 @@ class WindowSystem:
                             break
                 elif itemDisplay == self.display and itemType == "select":
                     if it.isOver(pos) == True:
-                        self.participants = it.getOver(pos).command()
-                        break
+                        if not it.numMode:
+                            self.participants = it.getOver(pos).command()
+                            break
+                        else:
+                            it.getOver(pos).command()
+                            break
                 elif itemDisplay == self.display and itemType == "platform":
                     if it.isOver(pos) == True:
                         if isinstance(it.getOver(pos), Dice):
