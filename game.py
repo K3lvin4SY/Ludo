@@ -34,7 +34,7 @@ class GamePlatform:
             for i in range(self.participants):
                 self.players[self.playerColors[i]] = Player(self.playerColors[i], self)
         elif self.mode == "sgo":
-            self.players[self.playerColors[0]] = Player(self.playerColors[0], self)
+            self.players[self.playerColors[0]] = Player(self.playerColors[0], self, bot=False)
             for i in range(self.participants-1):
                 self.players[self.playerColors[i+1]] = Player(self.playerColors[i+1], self, bot=True)
         self.turn = self.players[self.playerColors[0]]
@@ -138,6 +138,8 @@ class GamePlatform:
         self.playerDisplay = PlayerDisplay(self.properties, tbSize, tbSize, colors[list(self.players)[0]], x=20, y=20, text=list(self.players)[0] + ", Roll the Dice")
         self.playerDisplay.draw(self.scn, 40)
 
+        #self.nextPlayer(2)
+
     def isOver(self, pos):
         """
         It checks if the mouse is over a pawn or the dice.
@@ -199,12 +201,19 @@ class GamePlatform:
             self.system.setWinner(list(self.players.keys())[index])
             return
         self.rolled = False
-       # Checking if the dice is 6, if it is, it will return the turn. If it is not, it will try to
-       # change the turn to the next player. If it cannot, it will change the turn to the first
-       # player.
+
+        # Checking if the dice is 6, if it is, it will return the turn. If it is not, it will try to
+        # change the turn to the next player. If it cannot, it will change the turn to the first
+        # player.
         if dice == 6:
             self.playerDisplay.changeText(list(self.players.keys())[index] + ", Roll the Dice Again")
+            if self.turn.bot == True:
+                #self.playerDisplay.changeText("Click to continue")
+                # wait for confirmation
+                pygame.time.wait(200)
+                self.dice.roll()
             return self.turn
+
         try:
             self.turn = list(self.players.values())[index+1]
             self.playerDisplay.changeColor(colors[list(self.players.keys())[index+1]])
@@ -213,6 +222,14 @@ class GamePlatform:
             self.turn = list(self.players.values())[0]
             self.playerDisplay.changeColor(colors[list(self.players.keys())[0]])
             self.playerDisplay.changeText(list(self.players.keys())[0] + ", Roll the Dice")
+        
+        if self.turn.bot == True:
+            #self.playerDisplay.changeText("Click to continue")
+            # wait for confirmation
+            pygame.time.wait(200)
+            self.dice.roll()
+            return
+
         return self.turn
     
     def diceRoll(self, value):
@@ -224,12 +241,14 @@ class GamePlatform:
         :return: the value of the dice roll.
         """
         self.rolled = True
+
         if len(self.turn.home.pawn) +  len(self.turn.pawnsOut) == 4:
             if value == 1 or value == 6:
                 self.playerDisplay.changeText(self.turn.color + ", Pick a Pawn")
             else:
                 self.nextPlayer(value)
-            return
+            if self.turn.bot == False:
+                return
         elif len(self.turn.home.pawn) + len(self.turn.pawnsOut) == 3:
             if value == 1 or value == 6:
                 self.playerDisplay.changeText(self.turn.color + ", Pick a Pawn")
@@ -237,6 +256,8 @@ class GamePlatform:
                 self.playerDisplay.changeText(self.turn.color + ", Click the Pawn")
         else:
             self.playerDisplay.changeText(self.turn.color + ", Pick a Pawn")
+        if self.turn.bot == True:
+            self.turn.autoPlay(value)
         
 class PlayerDisplay:
     def __init__(self, properties, width, height, color=colors["Red"], centerX=False, centerY=False, x=0 , y=0, text='', textColor=colors["White"]) -> None:
@@ -442,7 +463,91 @@ class Player():
             pawn.draw(display, properties)
     
     def takeOutPawn(self, pawn):
+        """
+        It takes a pawn and adds it to the list of pawns that are out of the game
+        
+        :param pawn: The pawn that is being taken out of the game
+        """
         self.pawnsOut.append(pawn)
+
+    def autoPlay(self, diceValue):
+        """
+        It chooses a pawn to move based on the dice value and the current state of the board.
+        
+        :param diceValue: The value of the dice
+        :return: nothing.
+        """
+        if self.bot == True:
+            targets = {
+                "bad-end":[],
+                "out":[],
+                "good-end":[],
+                "end":[],
+                "normal":[],
+                "destroy":[],
+                "suicide":[],
+                "home":[],
+                "home-destroy":[]
+            }
+            if len(self.home.pawn) == 4:
+                if diceValue in [1, 6]:
+                    self.home.pawn[0].movePawn(self.home.pawn[0].tile.gridNum, diceValue, getTile=False)
+                return
+
+            for pawn in self.pawns:
+                if pawn not in self.home.pawn:
+                    if pawn not in self.pawnsOut:
+                        tile1 = pawn.movePawn(pawn.tile.gridNum, diceValue, getTile=True)
+                        if tile1 == "out":
+                            targets["out"].append(pawn)
+                            continue
+                        if tile1.pawn == None:
+                            if pawn.tile.gridType[0].lower() == "s" and tile1.gridType[0].lower() != "s":
+                                targets["bad-end"].append(pawn)
+                            if pawn.tile.gridType[0].lower() != "s" and tile1.gridType[0].lower() == "s":
+                                targets["good-end"].append(pawn)
+                            if pawn.tile.gridType[0].lower() == "s" and tile1.gridType[0].lower() == "s":
+                                targets["end"].append(pawn)
+                            if pawn.tile.gridType[0].lower() != "s" and tile1.gridType[0].lower() != "s":
+                                targets["normal"].append(pawn)
+                        elif tile1.pawn not in self.pawns:
+                            targets["destroy"].append(pawn)
+                        else:
+                            targets["suicide"].append(pawn)
+                        
+                else:
+                    if diceValue in [1, 6]:
+                        tile1 = pawn.movePawn(pawn.tile.gridNum, diceValue, getTile=True)
+                        if tile1.pawn == None:
+                            targets["home"].append(pawn)
+                        elif tile1.pawn not in self.pawns:
+                            targets["home-destroy"].append(pawn)
+            
+            # Choosing a pawn to move.
+            pawnToMove = None
+            if targets["home-destroy"]: # take out opponent by takeing out a pawn from home
+                pawnToMove = random.choice(targets["home-destroy"])
+            elif targets["destroy"]: # take out an opponent the normal way
+                pawnToMove = random.choice(targets["destroy"])
+            elif targets["out"]: # takeing a pawn to the goal
+                pawnToMove = random.choice(targets["out"])
+            elif targets["home"]: # takeing a pawn out from home (if not entry ocupied)
+                pawnToMove = random.choice(targets["home"])
+            elif targets["good-end"]: # entering the end roads (private roads)
+                pawnToMove = random.choice(targets["good-end"])
+            elif targets["normal"]: # normal jump
+                pawnToMove = random.choice(targets["normal"])
+            elif targets["end"]: # useless move on private roads
+                pawnToMove = random.choice(targets["end"])
+            elif targets["bad-end"]: # going out of the priovate roads to the public
+                pawnToMove = random.choice(targets["bad-end"])
+            elif targets["suicide"]: # killing your own =(
+                pawnToMove = random.choice(targets["suicide"])
+            else:
+                print("WARN: Unfinished Path!")
+
+            pawnToMove.movePawn(pawnToMove.tile.gridNum, diceValue, getTile=False)
+
 
 class Pawn():
     def __init__(self, color, platform, player) -> None:
@@ -522,15 +627,36 @@ class Pawn():
                 self.movePawn(self.tile.gridNum, self.platform.dice.value)
                 pass
     
-    def movePawn(self, prevLocation, diceValue):
+    def logicalMove(self, tile):
+        """
+        It moves the pawn to the tile that is passed in as an argument
+        but not placed on there.
+
+        method  functions as animation
+        
+        :param tile: The tile that the pawn is moving to
+        """
+        if not isinstance(self.logicalTile.pawn, list):
+            self.logicalTile.update()
+            if self.logicalTile.pawn != None:
+                if self.logicalTile.pawn != self:
+                    self.logicalTile.pawn.update()
+            self.x = tile.x
+            self.y = tile.y
+            self.draw(self.display, self.properties)
+            self.logicalTile = tile
+            pygame.display.flip()
+            pygame.time.wait(200)
+
+    def movePawn(self, prevLocation, diceValue, getTile = False):
         """
         It moves the pawn to the next tile based on the dicevalue.
         
         :param prevLocation: the grid number of the tile the pawn is currently on
         :param diceValue: the value of the dice
-        :return: the range of the steps left.
         """
         location = prevLocation
+        self.logicalTile = self.tile
         stepsLeft = 0
         playerNum = self.platform.playerColors.index(self.color)+1 # gets the player num (id) ex: red = 1, orange = 2, green = 4
         # Checking if the tile is a s or not. If it is not a s, it will check if the tile is
@@ -543,14 +669,20 @@ class Pawn():
                 if location != 0:
                     if self.platform.tiles[location].gridType[-1] == str(playerNum): # if tile standing on is players entry or exit
                         if self.platform.tiles[location].gridType[0].lower() == "x": # if it is exit
+                            if getTile == False:
+                                self.logicalMove(self.platform.tiles[location])
                             stepsLeft = diceValue - i
                             break
                 else:
                     for tile in self.platform.tiles.values():
                         if tile.gridType.lower() == "e"+str(playerNum):
                             location = tile.gridNum
+                            if getTile == False:
+                                self.logicalMove(self.platform.tiles[location])
                             break
                     break
+                if getTile == False:
+                    self.logicalMove(self.platform.tiles[location])
                 location += 1
                 if location == list(self.platform.tiles.keys())[-1]+1: # if location is over the maximum tile
                     location = 1
@@ -558,13 +690,9 @@ class Pawn():
             stepsLeft = diceValue
         # Moving the pawn to the new location. (code used when moving on public road)
         if stepsLeft == 0:
-            self.platform.tiles[location].addPawn(self)
-            self.tile.removePawn(self)
-            self.tile.update()
-            self.tile = self.platform.tiles[location]
-            self.x = self.platform.tiles[location].x
-            self.y = self.platform.tiles[location].y
-            self.draw(self.display, self.properties)
+            if getTile:
+                return self.platform.tiles[location]
+            self.placePawn(self.platform.tiles[location])
         else:
             
             endTiles = self.platform.getEndTiles(self.color)
@@ -585,41 +713,76 @@ class Pawn():
             # Moving pawn on private roads
             for i in getRange():
                 i += 1
+                
                 endLocation = i
                 if endLocation == list(endTiles)[-1]:
                     if i == stepsLeft + loc:
                         # pawn out of game
-                        self.player.takeOutPawn(self)
-                        self.tile.removePawn(self)
-                        self.tile.update()
-                        self.out = True
+                        if getTile:
+                            return "out"
+                        self.placePawn("out")
                         self.platform.nextPlayer(diceValue)
                         return
                 if endLocation >= list(endTiles)[-1]:
                     endLocation = (list(endTiles)[-2]*2)-endLocation
+                if getTile == False:
+                    if endLocation <= 0:
+                        for til in self.platform.tiles:
+                            if self.platform.tiles[til].gridType.lower() == "x"+str(playerNum):
+                                logicalLoc = til - (endLocation*-1)
+                        self.logicalMove(self.platform.tiles[logicalLoc])
+                    else:
+                        logicalLoc = endLocation
+                        self.logicalMove(endTiles[logicalLoc])
             # Moving the pawn to the end location.
             if endLocation <= 0:
                 for til in self.platform.tiles:
                     if self.platform.tiles[til].gridType.lower() == "x"+str(playerNum):
                         endLocation = til - (endLocation*-1)
-                self.platform.tiles[endLocation].addPawn(self)
-                self.tile.removePawn(self)
-                self.tile.update()
-                self.tile = self.platform.tiles[endLocation]
-                self.x = self.platform.tiles[endLocation].x
-                self.y = self.platform.tiles[endLocation].y
-                self.draw(self.display, self.properties)
+                if getTile:
+                    return self.platform.tiles[endLocation]
+                self.placePawn(self.platform.tiles[endLocation])
             # Moving the pawn to the end tile.
             else:
-                endTiles[endLocation].addPawn(self)
-                self.tile.removePawn(self)
-                self.tile.update()
-                self.tile = endTiles[endLocation]
-                self.x = endTiles[endLocation].x
-                self.y = endTiles[endLocation].y
-                self.draw(self.display, self.properties)
+                if getTile:
+                    return endTiles[endLocation]
+                self.placePawn(endTiles[endLocation])
 
+        if getTile:
+            return None
         self.platform.nextPlayer(diceValue)
+        self.logicalTile = None
+
+    def placePawn(self, newTile):
+        """
+        It takes a pawn and moves it to a new tile
+        
+        :param newTile: The tile that the pawn is being placed on
+        """
+        if newTile == "out":
+            self.player.takeOutPawn(self)
+            self.tile.removePawn(self)
+            self.tile.update()
+            self.out = True
+            self.logicalTile.update()
+            if self.logicalTile.pawn != None:
+                if self.logicalTile.pawn != self:
+                    self.logicalTile.pawn.update()
+            self.logicalTile = None
+        else:
+            newTile.addPawn(self)
+            self.tile.removePawn(self)
+            self.tile.update()
+            self.tile = newTile
+            self.x = newTile.x
+            self.y = newTile.y
+            self.logicalTile.update()
+            if self.logicalTile.pawn != None:
+                if self.logicalTile.pawn != self:
+                    if not isinstance(self.logicalTile.pawn, list):
+                        self.logicalTile.pawn.update()
+            self.draw(self.display, self.properties)
+            self.logicalTile = None
     
     def update(self):
         """
