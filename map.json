@@ -2,6 +2,12 @@
     "dimentions":11,
     "participants":4,
     "colors":["Red", "Orange", "Yellow", "Green"],
+    "dir":{
+        "X3":"<",
+        "X4":"/\\",
+        "X1":">",
+        "X2":"\\/"
+    },
     "map":{
         "1-E1":[2, 7],
         "2-N":[3, 7],
