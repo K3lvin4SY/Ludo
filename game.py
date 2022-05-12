@@ -343,8 +343,6 @@ class Tile:
         self.x = x
         self.y = y
         self.color = color
-        with open("map.json") as file:
-            dire = json.load(file)["dir"]
         self.pawn = None
         self.gridData = gridData
         if not gridData[0].lower() == "b":
@@ -353,11 +351,7 @@ class Tile:
         else:
             self.gridNum = 0
             self.gridType = gridData
-        if self.gridType[0].lower() == "x":
-            self.text = dire[self.gridType.upper()]
-        else:
-            self.text = ""
-        self.tile = TextBox(self.properties, self.width, self.height, self.centerX, self.centerY, self.x, self.y, self.color, self.text)
+        self.tile = TextBox(self.properties, self.width, self.height, self.centerX, self.centerY, self.x, self.y, self.color)
     
     def draw(self, display):
         """
