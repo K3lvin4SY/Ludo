@@ -1,5 +1,4 @@
 from colors import colors
-from myRange import myRange
 import random
 import json
 from gui import *
@@ -132,9 +131,7 @@ class GamePlatform:
             player.givePawnsInfo(self.bases["b"+str(baseNum)], scn, self.properties)
 
         # set dice
-        dicex = getCoords(self.mapData["dice"][0])
-        dicey = getCoords(self.mapData["dice"][1])*-1
-        self.dice = Dice(self, self.properties, tbSize, tbSize, self.centerX, self.centerY, dicex, dicey)
+        self.dice = Dice(self, self.properties, tbSize, tbSize, self.centerX, self.centerY)
         self.dice.draw(self.scn)
 
         # Player Display
@@ -578,9 +575,8 @@ class Pawn():
         """
         self.properties = properties
         self.display = display
-        self.pawn = TextBox(properties, int((self.properties.height/self.platform.gridSize)*0.4), int((self.properties.height/self.platform.gridSize)*0.4), True, True, self.x, self.y, colors[self.color], command=lambda: self.clicked())
-        self.pawn.draw(self.display, colors["White"])
-        self.pawnBg = TextBox(properties, int((self.properties.height/self.platform.gridSize)*0.6), int((self.properties.height/self.platform.gridSize)*0.6), True, True, self.x, self.y, colors["Secondary"])
+        self.pawn = TextBox(properties, 30, 30, True, True, self.x, self.y, colors[self.color], command=lambda: self.clicked())
+        self.pawn.draw(display, colors["White"])
 
     def setHome(self, home):
         """
@@ -633,63 +629,24 @@ class Pawn():
     
     def logicalMove(self, tile):
         """
-        It moves the pawn from one tile to another
+        It moves the pawn to the tile that is passed in as an argument
+        but not placed on there.
+
+        method  functions as animation
         
         :param tile: The tile that the pawn is moving to
-        :return: the value of the last line of the function.
         """
         if not isinstance(self.logicalTile.pawn, list):
-            try: self.lastTile
-            except AttributeError: self.lastTile = None
-            if self.lastTile is None:
-                self.lastTile = self.tile
-            if str(self.lastTile.x) + ", " + str(self.lastTile.y) == str(tile.x) + ", " + str(tile.y):
-                return
-            print(str(self.lastTile.x) + ", " + str(self.lastTile.y))
-            print(str(tile.x) + ", " + str(tile.y))
-            
-            if self.lastTile.x == tile.x:
-                range = myRange(self.lastTile.y, tile.y)
-                for y in range:
-                    self.x = tile.x
-                    self.y = y
-                    self.pawnBg.draw(self.display)
-
-                    self.lastTile.update()
-                    if self.lastTile.pawn != None:
-                        if self.lastTile.pawn != self:
-                            self.lastTile.pawn.update()
-                    
-                    self.logicalTile.update()
-                    if self.logicalTile.pawn != None:
-                        if self.logicalTile.pawn != self:
-                            self.logicalTile.pawn.update()
-                    self.draw(self.display, self.properties)
-                    self.logicalTile = tile
-                    pygame.display.flip()
-                    pygame.time.wait(int(200*(1/(len(range)))))
-            elif self.lastTile.y == tile.y:
-                range = myRange(self.lastTile.x, tile.x)
-                for x in range:
-                    self.x = x
-                    self.y = tile.y
-                    self.pawnBg.draw(self.display)
-
-                    self.lastTile.update()
-                    if self.lastTile.pawn != None:
-                        if self.lastTile.pawn != self:
-                            self.lastTile.pawn.update()
-                    
-                    self.logicalTile.update()
-                    if self.logicalTile.pawn != None:
-                        if self.logicalTile.pawn != self:
-                            self.logicalTile.pawn.update()
-                    self.draw(self.display, self.properties)
-                    self.logicalTile = tile
-                    pygame.display.flip()
-                    pygame.time.wait(int(200*(1/(len(range)))))
-            if self.lastTile is not tile:
-                self.lastTile = tile
+            self.logicalTile.update()
+            if self.logicalTile.pawn != None:
+                if self.logicalTile.pawn != self:
+                    self.logicalTile.pawn.update()
+            self.x = tile.x
+            self.y = tile.y
+            self.draw(self.display, self.properties)
+            self.logicalTile = tile
+            pygame.display.flip()
+            pygame.time.wait(200)
 
     def movePawn(self, prevLocation, diceValue, getTile = False):
         """
@@ -802,7 +759,6 @@ class Pawn():
         
         :param newTile: The tile that the pawn is being placed on
         """
-        self.logicalMove(newTile)
         if newTile == "out":
             self.player.takeOutPawn(self)
             self.tile.removePawn(self)

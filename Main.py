@@ -15,21 +15,21 @@ pygame.init()
 class Screen():
     """The class for each screen.
     """
-    def __init__(self, title, width=1280, height=720, fill=colors["Secondary"]) -> None:
+    def __init__(self, title, properties, fill=colors["Secondary"]) -> None:
         """creates the new screen by aplying some values
 
         Args:
             title (string): the window title
-            width (int, optional): the width of the screen. Defaults to 1280.
-            height (int, optional): the height od the screen. Defaults to 720.
+            properties (Properties): the windows dimetions
             fill (tuple, optional): bg color of screen. Defaults to colors["Secondary"].
         """
         
-        self.properties = Properties(width, height)
+        self.properties = properties
 
         self.title = title
         self.width = self.properties.width
         self.height = self.properties.height
+        self.fullscreen = self.properties.fullscreen
         self.fill = fill
         self.enabled = False
     
@@ -45,6 +45,18 @@ class Screen():
         """disable screen
         """
         self.enabled = False
+
+    def changeRes(self, properties):
+        self.properties = properties
+        
+        self.width = self.properties.width
+        self.height = self.properties.height
+        self.fullscreen = self.properties.fullscreen
+        
+        if self.fullscreen:
+            pygame.display.toggle_fullscreen()
+        else:
+            self.screen = pygame.display.set_mode((self.width, self.height))
     
     def checkState(self):
         """to check the status of a screen (enabled or disavbled)
@@ -73,7 +85,7 @@ class WindowSystem:
     def __init__(self) -> None:
 
         self.items = {}
-        self.properties = Properties(1280, 720)
+        self.properties = Properties(1280, 820)
 
         #self.mainScreen = pygame.display.set_mode((self.properties.width, self.properties.height))
 
@@ -82,13 +94,14 @@ class WindowSystem:
 
         #pygame.draw.rect(self.mainScreen, (195, 200, 219), pygame.Rect(0, 0, self.properties.width, self.properties.height))
         #pygame.draw.rect(self.mainScreen, (255,255,0), pygame.Rect(30, 30, 60, 60))
-        startScreen = Screen("Start Screen")
-        sGameOptionsScreen = Screen("Singleplayer Game Options")
-        mGameOptionsScreen = Screen("Multiplayer Game Options")
-        gameScreen = Screen("Game")
-        endScreen = Screen("End Screen")
-        buildOptScreen = Screen("Map Builder Options")
-        buildScreen = Screen("Map Builder")
+        startScreen = Screen("Start Screen", self.properties)
+        sGameOptionsScreen = Screen("Singleplayer Game Options", self.properties)
+        mGameOptionsScreen = Screen("Multiplayer Game Options", self.properties)
+        gameScreen = Screen("Game", self.properties)
+        endScreen = Screen("End Screen", self.properties)
+        buildOptScreen = Screen("Map Builder Options", self.properties)
+        buildScreen = Screen("Map Builder", self.properties)
+        gameOptScreen = Screen("Game Options", self.properties)
 
         self.screens = {
             "main":startScreen,
@@ -97,7 +110,8 @@ class WindowSystem:
             "gs":gameScreen,
             "es":endScreen,
             "bso":buildOptScreen,
-            "bs":buildScreen
+            "bs":buildScreen,
+            "gos":gameOptScreen
         }
 
         self.screensFunc = {
@@ -107,7 +121,8 @@ class WindowSystem:
             "gs":self.gameScn,
             "es":self.endScn,
             "bso":self.buildOptScn,
-            "bs":self.buildScn
+            "bs":self.buildScn,
+            "gos":self.gameOptScn
         }
 
         startScreen.enable()
@@ -140,6 +155,10 @@ class WindowSystem:
         self.multiPlayerBtn = self.addTextBox(TextBox(self.properties, 230, 60, centerX=True, centerY=True, y=100, text='Multiplayer', color=colors["DarkGrey"], hoverColor=colors["White"], command=lambda x="mgo": self.changeScreen(x)))
         
         self.multiPlayerBtn.draw(scn, outline=colors["Primary1"], size=40)
+        
+        self.gameOptBtn = self.addTextBox(TextBox(self.properties, 230, 60, centerX=True, centerY=True, y=220, text='Options', color=colors["DarkGrey"], hoverColor=colors["White"], command=lambda x="gos": self.changeScreen(x)))
+        
+        self.gameOptBtn.draw(scn, outline=colors["Primary1"], size=40)
 
         # Quit Btn
         self.backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x=20, text='Quit', command=lambda: self.quitGame()))
@@ -148,6 +167,24 @@ class WindowSystem:
         # Builder Btn
         self.backBtn = self.addTextBox(TextBox(self.properties, 200, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x="max-20", text='Builder', command=lambda x="bso": self.changeScreen(x)))
         self.backBtn.draw(scn)
+
+    def gameOptScn(self, scn):
+        self.display = "gos"
+        # Title
+        self.titleTB = self.addTextBox(TextBox(self.properties, 500, 70, centerX=True, y=100, text='Game Options', color=colors["Primary2"]))
+        self.titleTB.draw(scn)
+
+        # Width selection
+        self.botsSelect = self.addTextBox(Selection(self.properties, ["Fullscreen", "3840x2160", "2560x1440", "1920x1080", "1280x720", "720x480"], True, True, title="Resolution:", vertical=True))
+        self.botsSelect.draw(scn, 40)
+
+        # Back Btn
+        self.backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x=20, text='Back', command=lambda x="main": self.changeScreen(x)))
+        self.backBtn.draw(scn)
+
+        # Apply Btn
+        self.applyBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=True, centerY=False, y="max-20", x=0, text='Apply', command=lambda: self.applyOptions()))
+        self.applyBtn.draw(scn)
 
     def multiGameOptScn(self, scn):
         """GUI for multiplayer options
@@ -298,7 +335,7 @@ class WindowSystem:
                 elif itemDisplay == self.display and itemType == "select":
                     if it.isOver(pos) == True:
                         if not it.numMode:
-                            self.participants = it.getOver(pos).command()
+                            self.valueHandler(it, it.getOver(pos).command())
                             break
                         else:
                             it.getOver(pos).command()
@@ -311,6 +348,19 @@ class WindowSystem:
                             it.getOver(pos).pawn.command()
                         break
         
+    def valueHandler(self, obj, val):
+        selType = obj.title
+        if "player" in selType.lower() or "bot" in selType.lower():
+            self.participants = int(val)
+        elif "resolution" in selType.lower():
+            self.properties.changeRes(val.lower())
+        else:
+            print("valueHandler Logical Error")
+
+    def applyOptions(self):
+        for scn in list(self.screens.values()):
+            scn.changeRes(self.properties)
+        self.changeScreen("main")
 
     def addTextBox(self, tb):
         """adds the textbox to a dictionary
@@ -346,8 +396,16 @@ class WindowSystem:
 
 class Properties():
     def __init__(self, width, height) -> None:
-        self.width =width
-        self.height =height
+        self.width = width
+        self.height = height
+        self.fullscreen = False
+    def changeRes(self, res):
+        if "x" in res:
+            self.width = int(res.split("x")[0])
+            self.height = int(res.split("x")[1])
+        else:
+            self.fullscreen = True
+
 
 
 game = WindowSystem()

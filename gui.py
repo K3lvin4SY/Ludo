@@ -1,10 +1,11 @@
 import pygame
+import fontawesome as fa
 from colors import colors
 
 class Selection():
     """class for creating a selection
     """
-    def __init__(self, properties, text, centerX=False, centerY=False, x=0 , y=0, color=colors["Primary1"], hoverColor=None, title=None, numMode=False) -> None:
+    def __init__(self, properties, text, centerX=False, centerY=False, x=0 , y=0, color=colors["Primary1"], hoverColor=None, title=None, numMode=False, vertical=False) -> None:
         """initiates the creation of the selection but does not draw it down on screen
 
         Args:
@@ -30,6 +31,7 @@ class Selection():
         self.properties = properties
         self.title=title
         self.numMode = numMode
+        self.vertical = vertical
         if self.numMode:
             self.text = ["<", text, ">"]
         else:
@@ -47,21 +49,33 @@ class Selection():
         self.size = size
         if self.title != None:
             # Title text for selector
-            self.title = TextBox(self.properties, len(self.title)*self.size*1.5, self.size, self.centerX, self.centerY, self.x, self.y-50, colors["Secondary"], text=self.title, textColor=colors["White"])
-            self.title.draw(display)
+            self.titleTB = TextBox(self.properties, len(self.title)*self.size*1.5, self.size, self.centerX, self.centerY, self.x, self.y-50, colors["Secondary"], text=self.title, textColor=colors["White"])
+            self.titleTB.draw(display)
             self.items.append(self.title)
         # the border for all the selection options
-        self.border = TextBox(self.properties, len(self.text)*self.size*1.5, self.size, centerX=self.centerX, centerY=self.centerY, y=self.y, x=self.x, color=colors["Secondary"], hoverColor=self.hoverColor)
+        if self.vertical == True:
+            borderHeight = len(self.text)*self.size
+        else:
+            borderHeight = self.size
+        self.border = TextBox(self.properties, len(self.text)*self.size*1.5, borderHeight, centerX=self.centerX, centerY=self.centerY, y=self.y, x=self.x, color=colors["Secondary"], hoverColor=self.hoverColor)
         self.border.draw(display, outline=self.color)
         self.items.append(self.border)
         # the selection options
         for sel in self.text:
-            # formula for x cordinate
-            xPosAdjustment = int((len(self.text)*self.size-self.size*0.2)*(self.text.index(sel)/(len(self.text)-1)) - (len(self.text)*self.size-self.size*0.2)/2)
-            if sel not in ["<", ">"] and self.numMode:
-                opt = TextBox(self.properties, self.size*0.8, self.size*0.6, self.centerX, self.centerY, self.x + xPosAdjustment, self.y, color=colors["DarkGrey"], text=sel)
+            index = int(self.text.index(sel))
+            if self.vertical:
+                xPosAdjustment = 0
+                yPosAdjustment = int(len(self.text)*self.size*(index/(len(self.text))) - ((len(self.text)*self.size*((len(self.text)-1)/len(self.text)))/2))
             else:
-                opt = TextBox(self.properties, self.size*0.8, self.size*0.6, self.centerX, self.centerY, self.x + xPosAdjustment, self.y, color=colors["DarkGrey"], text=sel, command=lambda x=sel: self.updateValue(x))
+                # formula for x cordinate
+                xPosAdjustment = int((len(self.text)*self.size-self.size*0.2)*(self.text.index(sel)/(len(self.text)-1)) - (len(self.text)*self.size-self.size*0.2)/2)
+                yPosAdjustment = 0
+            if sel not in ["<", ">"] and self.numMode:
+                opt = TextBox(self.properties, self.size*0.8, self.size*0.6, self.centerX, self.centerY, self.x + xPosAdjustment, self.y + yPosAdjustment, color=colors["DarkGrey"], text=sel)
+            elif self.vertical:
+                opt = TextBox(self.properties, len(sel)*18, self.size*0.6, self.centerX, self.centerY, self.x + xPosAdjustment, self.y + yPosAdjustment, color=colors["DarkGrey"], text=sel, command=lambda x=sel: self.updateValue(x))
+            else:
+                opt = TextBox(self.properties, self.size*0.8, self.size*0.6, self.centerX, self.centerY, self.x + xPosAdjustment, self.y + yPosAdjustment, color=colors["DarkGrey"], text=sel, command=lambda x=sel: self.updateValue(x))
             opt.draw(display, self.color, self.size)
             self.items.append(opt)
 
@@ -84,7 +98,7 @@ class Selection():
                     it.changeColor(colors["White"]) # selected
                     continue
                 it.changeColor(colors["DarkGrey"]) # not selected
-            return int(self.value)
+            return self.value
         else:
             if val == "<":
                 self.items[-2].text = str(int(self.items[-2].text)-1)
