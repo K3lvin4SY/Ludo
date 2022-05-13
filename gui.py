@@ -105,6 +105,7 @@ class Selection():
             elif val == ">":
                 self.items[-2].text = str(int(self.items[-2].text)+1)
             self.update()
+            return int(self.items[-2].text)
 
     def update(self):
         for it in self.items:

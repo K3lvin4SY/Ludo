@@ -67,7 +67,7 @@ class GamePlatform:
             # Calculating the y-coordinate of the grid.
             y= int(((cor-1))/(gridSize-1)*(self.properties.height-gridSize*8) - (self.properties.height-gridSize*8)/2)
             return y
-        tbSize = int(self.properties.height/self.gridSize)-5
+        tbSize = int((self.properties.height/self.gridSize)*0.93)
         
         # adds the public road
         # Creating a tile object for each tile on the board.
@@ -139,7 +139,7 @@ class GamePlatform:
 
         # Player Display
         self.playerDisplay = PlayerDisplay(self.properties, tbSize, tbSize, colors[list(self.players)[0]], x=20, y=20, text=list(self.players)[0] + ", Roll the Dice")
-        self.playerDisplay.draw(self.scn, 40)
+        self.playerDisplay.draw(self.scn, int(tbSize*0.58))
 
         #self.nextPlayer(2)
 
@@ -396,10 +396,10 @@ class Tile:
         :param pawn: The pawn that you want to get the home coordinates of
         :return: The x and y coordinates of the pawn's home position.
         """
-        offsetCoords = {0:(-30, -30), 1:(-30, 30), 2:(30, -30), 3:(30, 30)}
+        offsetCoords = {0:(-1*self.width*0.2, -1*self.width*0.2), 1:(-1*self.width*0.2, self.width*0.2), 2:(self.width*0.2, -1*self.width*0.2), 3:(self.width*0.2, self.width*0.2)}
         index = self.pawn.index(pawn)
-        x = self.x + offsetCoords[index][0]
-        y = self.y + offsetCoords[index][1]
+        x = self.x + int(offsetCoords[index][0])
+        y = self.y + int(offsetCoords[index][1])
         return x, y
         
     def getPawnCordinates(self):
@@ -871,7 +871,7 @@ class Dice:
         
         :param display: The display to draw the dice on
         """
-        self.dice.draw(display)
+        self.dice.draw(display, size=int(self.width))
     
     def roll(self):
         """

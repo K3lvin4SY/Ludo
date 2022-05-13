@@ -2,6 +2,7 @@ import pygame
 from game import *
 from colors import colors
 from gui import *
+from mapBuilder import BuildGrid
 
 pygame.init()
 
@@ -263,7 +264,7 @@ class WindowSystem:
         self.titleTB.draw(scn)
 
         # grid size selection
-        self.gridsize = self.addTextBox(Selection(self.properties, "4", True, True, title="Players:", numMode=True, y=80))
+        self.gridsize = self.addTextBox(Selection(self.properties, "4", True, True, title="Grid Players:", numMode=True, y=80))
         self.gridsize.draw(scn, 40)
 
         # grid size selection
@@ -271,7 +272,7 @@ class WindowSystem:
         self.players.draw(scn, 40)
 
         # Start Btn
-        self.backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=True, centerY=False, y="max-20", x=0, text='Start'))
+        self.backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=True, centerY=False, y="max-20", x=0, text='Start', command=lambda x=scn: self.startBuild(x)))
         self.backBtn.draw(scn)
 
         # Back Btn
@@ -302,6 +303,13 @@ class WindowSystem:
         self.running = False
     
     def update(self, event): # method that gets called aas quicly as possible (main loop)
+        """
+        It checks if the mouse is over a button, and if it is, it runs the command associated with that
+        button.
+        Plus that it updates the screen
+        
+        :param event: the event that is passed to the method
+        """
         
         
         pos = pygame.mouse.get_pos()
@@ -320,6 +328,8 @@ class WindowSystem:
                     hover = it.isOver(pos)
                 elif self.items[it][0] == self.display and self.items[it][1] == "platform":
                     hover = it.isOver(pos)
+                elif self.items[it][0] == self.display and self.items[it][1] == "buildform":
+                    hover = it.isOver(pos)
                 hovers.append(hover)
             if not True in hovers: # fixes the problem when a just clikced button moves and pointer is locked to hand until hover on another button. (true if mouse is over no buttons at all)
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
@@ -334,12 +344,8 @@ class WindowSystem:
                             break
                 elif itemDisplay == self.display and itemType == "select":
                     if it.isOver(pos) == True:
-                        if not it.numMode:
-                            self.valueHandler(it, it.getOver(pos).command())
-                            break
-                        else:
-                            it.getOver(pos).command()
-                            break
+                        self.valueHandler(it, it.getOver(pos).command())
+                        break
                 elif itemDisplay == self.display and itemType == "platform":
                     if it.isOver(pos) == True:
                         if isinstance(it.getOver(pos), Dice):
@@ -354,6 +360,10 @@ class WindowSystem:
             self.participants = int(val)
         elif "resolution" in selType.lower():
             self.properties.changeRes(val.lower())
+        elif "grid size" in selType.lower():
+            self.buildGridSize = int(val)
+        elif "grid p" in selType.lower():
+            self.buildGridPlayers = int(val)
         else:
             print("valueHandler Logical Error")
 
@@ -361,6 +371,17 @@ class WindowSystem:
         for scn in list(self.screens.values()):
             scn.changeRes(self.properties)
         self.changeScreen("main")
+
+    def startBuild(self, scn):
+        self.changeScreen("bs")
+        try: self.buildGridSize
+        except AttributeError: self.buildGridSize = 11
+        try: self.buildGridPlayers
+        except AttributeError: self.buildGridPlayers = 4
+        self.buildingGrid = self.addTextBox(BuildGrid(self.buildGridSize, self.buildGridPlayers, self.properties))
+        self.buildingGrid.draw(scn)
+        
+        
 
     def addTextBox(self, tb):
         """adds the textbox to a dictionary
@@ -375,6 +396,8 @@ class WindowSystem:
             self.items[tb] = [self.display, "select"]
         elif isinstance(tb, GamePlatform):
             self.items[tb] = ["gs", "platform"]
+        elif isinstance(tb, BuildGrid):
+            self.items[tb] = ["bs", "buildform"]
         else:
             self.items[tb] = [self.display, "textbox"]
         return tb
