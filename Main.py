@@ -353,6 +353,10 @@ class WindowSystem:
                         else:
                             it.getOver(pos).pawn.command()
                         break
+                elif itemDisplay == self.display and itemType == "buildform":
+                    if it.isOver(pos) == True:
+                        it.getOver(pos).tile.command()
+                        break
         
     def valueHandler(self, obj, val):
         selType = obj.title

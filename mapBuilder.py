@@ -40,7 +40,16 @@ class BuildGrid:
         self.interface.draw(self.display)
 
     def isOver(self, pos):
-        pass
+        for tile in list(self.tiles.values()):
+            if tile.isOver(pos):
+                return True
+        return False
+
+    def getOver(self, pos):
+        for tile in list(self.tiles.values()):
+            if tile.isOver(pos):
+                return tile
+        return None
 
 class Tile:
     def __init__(self, properties, dim, x, y, gridSize):
@@ -57,7 +66,13 @@ class Tile:
         self.tile.draw(self.display)
     
     def clicked(self):
+        print("hello")
         pass
+
+    def isOver(self, pos):
+        return self.tile.isOver(pos)
+
+
 
 class BuildInterface:
     def __init__(self, properties, dim) -> None:
