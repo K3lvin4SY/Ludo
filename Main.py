@@ -90,6 +90,9 @@ class Screen():
 class WindowSystem:
 
     def __init__(self) -> None:
+        """
+        It initializes the game and then runs the main function.
+        """
 
         self.items = {}
         self.properties = Properties(1280, 820)
@@ -177,6 +180,11 @@ class WindowSystem:
         backBtn.draw(scn)
 
     def gameOptScn(self, scn):
+        """
+        It creates the game options screen gui
+        
+        :param scn: The screen to draw the textbox on
+        """
         self.display = "gos"
         # Title
         titleTB = self.addTextBox(TextBox(self.properties, 500, 70, centerX=True, y=100, text='Game Options', color=colors["Primary2"]))
@@ -195,7 +203,7 @@ class WindowSystem:
         applyBtn.draw(scn)
 
     def initiateGameOptScn(self, scn):
-        """GUI for multiplayer options
+        """GUI for game options
 
         Args:
             scn (Screen): the linked screen to this gui layout
@@ -278,9 +286,19 @@ class WindowSystem:
 
 
     def buildScn(self, scn):
+        """
+        This function is for building a map
+        
+        :param scn: The screen to build
+        """
         self.display = "bs"
 
     def mapOptScn(self, scn):
+        """
+        It creates a screen that allows the user to select a map from a list of maps
+        
+        :param scn: The scene to draw the textbox on
+        """
         self.display = "mos"
         # Title
         titleTB = self.addTextBox(TextBox(self.properties, 500, 70, centerX=True, y=100, text='Map Options', color=colors["Primary2"]))
@@ -412,6 +430,9 @@ class WindowSystem:
         self.changeScreen("main")
         
     def applyMapOptions(self):
+        """
+        It changes the active the map to play
+        """
         for scn in list(self.screens.values()):
             scn.changeRes(self.properties)
         self.changeScreen("main")
@@ -452,6 +473,9 @@ class WindowSystem:
         return tb
 
     def startGame(self):
+        """
+        It starts the game
+        """
         if self.participants == 0:
             return
         print("Starting Game along with " + str(self.participants) + " participants!")
@@ -461,6 +485,11 @@ class WindowSystem:
         pass
 
     def setWinner(self, playerColor):
+        """
+        It sets the winner to the playerColor and changes the screen to the end screen
+        
+        :param playerColor: The color of the player who won
+        """
         self.winner = playerColor
         self.changeScreen("es")
 
@@ -468,15 +497,30 @@ class WindowSystem:
 
 class Properties():
     def __init__(self, width, height) -> None:
+        """
+        This function is used to initialize the width, height, and fullscreen variables
+        
+        :param width: The width of the window
+        :param height: The height of the window
+        """
         self.width = width
         self.height = height
         self.fullscreen = False
     def changeRes(self, res):
+        """
+        If the resolution is in the form of "widthxheight", then set the width and height to the values
+        given. Otherwise, toggles the fullscreen variable from True to False and vise versa
+        
+        :param res: The resolution of the game
+        """
         if "x" in res:
             self.width = int(res.split("x")[0])
             self.height = int(res.split("x")[1])
         else:
-            self.fullscreen = True
+            if self.fullscreen == True:
+                self.fullscreen = False
+            else:
+                self.fullscreen = True
 
 
 
