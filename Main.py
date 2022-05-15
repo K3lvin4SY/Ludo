@@ -97,6 +97,7 @@ class WindowSystem:
         self.items = {}
         self.properties = Properties(1280, 820)
         self.selectedMap = "Default Map"
+        self.bots = None
 
         #self.mainScreen = pygame.display.set_mode((self.properties.width, self.properties.height))
 
@@ -476,7 +477,7 @@ class WindowSystem:
         """
         It starts the game
         """
-        if self.participants == 0:
+        if self.participants == 0 or self.bots == None:
             return
         print("Starting Game along with " + str(self.participants) + " participants!")
         if self.display == "sgo":

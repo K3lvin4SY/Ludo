@@ -560,6 +560,9 @@ class Player():
                 print("WARN: Unfinished Path!")
 
             pawnToMove.movePawn(pawnToMove.tile.gridNum, diceValue, getTile=False)
+    
+    def disableFirstTurn(self):
+        self.firstTurn = False
 
 
 class Pawn():
