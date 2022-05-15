@@ -49,7 +49,10 @@ class Selection():
         self.size = size
         if self.title != None:
             # Title text for selector
-            self.titleTB = TextBox(self.properties, len(self.title)*self.size*1.5, self.size, self.centerX, self.centerY, self.x, self.y-50, colors["Secondary"], text=self.title, textColor=colors["White"])
+            if self.vertical:
+                self.titleTB = TextBox(self.properties, len(self.title)*self.size*1.5, self.size, self.centerX, self.centerY, self.x, self.y-int(28*len(self.text)), colors["Secondary"], text=self.title, textColor=colors["White"])
+            else:
+                self.titleTB = TextBox(self.properties, len(self.title)*self.size*1.5, self.size, self.centerX, self.centerY, self.x, self.y-50, colors["Secondary"], text=self.title, textColor=colors["White"])
             self.titleTB.draw(display)
             self.items.append(self.title)
         # the border for all the selection options
@@ -68,7 +71,10 @@ class Selection():
                 yPosAdjustment = int(len(self.text)*self.size*(index/(len(self.text))) - ((len(self.text)*self.size*((len(self.text)-1)/len(self.text)))/2))
             else:
                 # formula for x cordinate
-                xPosAdjustment = int((len(self.text)*self.size-self.size*0.2)*(self.text.index(sel)/(len(self.text)-1)) - (len(self.text)*self.size-self.size*0.2)/2)
+                if len(self.text)-1 == 0:
+                    xPosAdjustment = 0
+                else:
+                    xPosAdjustment = int((len(self.text)*self.size-self.size*0.2)*(self.text.index(sel)/(len(self.text)-1)) - (len(self.text)*self.size-self.size*0.2)/2)
                 yPosAdjustment = 0
             if sel not in ["<", ">"] and self.numMode:
                 opt = TextBox(self.properties, self.size*0.8, self.size*0.6, self.centerX, self.centerY, self.x + xPosAdjustment, self.y + yPosAdjustment, color=colors["DarkGrey"], text=sel)
@@ -86,7 +92,7 @@ class Selection():
             val (string): the choosen option
 
         Returns:
-            int: the shoosen value
+            int: the choosen value
         """
         
         if not self.numMode:
@@ -156,7 +162,6 @@ class Selection():
             if it == self.border or it == self.title:
                 continue
             if it.isOver(pos):
-                print(it)
                 return it
         return None
 
@@ -165,7 +170,7 @@ class Selection():
 class TextBox():
     """Class for creating a textbox. Can be used a a button, text info or a simple block
     """
-    def __init__(self, properties, width, height, centerX=False, centerY=False, x=0 , y=0, color=(255,255,0), text='', hoverColor=None, command=None, textColor=(0,0,0)):
+    def __init__(self, properties, width, height, centerX=False, centerY=False, x=0 , y=0, color=(255,255,0), text='', hoverColor=None, command=None, textColor=(0,0,0), textbgSize=False):
         """initates the textbox but does not draw and place it on screen
 
         Args:
@@ -202,6 +207,7 @@ class TextBox():
             self.y = y
 
         self.hover = False
+        self.textbgSize = textbgSize
         self.color = color
         self.originalColor = color
         self.textColor = textColor
@@ -229,6 +235,8 @@ class TextBox():
         self.display = display
         self.outline = outline
         self.size = size
+        if self.textbgSize:
+            self.width = int(len(self.text)*(self.size/2.7))
         if outline:
             pygame.draw.rect(display, outline, (self.x-2,self.y-2,self.width+4,self.height+4), 0, border_radius=9)
             
@@ -257,6 +265,8 @@ class TextBox():
             text (string): the new text to display
         """
         self.text = str(text) # updates text to new
+        if self.textbgSize:
+            pygame.draw.rect(self.display, self.color, (self.x,self.y,self.width,self.height), 0, border_radius=8)
         self.draw(self.display, self.outline, self.size) # draws the updated version
 
     def isOver(self, pos):

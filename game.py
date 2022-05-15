@@ -5,7 +5,7 @@ import json
 from gui import *
 
 class GamePlatform:
-    def __init__(self, properties, mode, participants, system, centerX=True, centerY=True) -> None:
+    def __init__(self, properties, mode, participants, system, selectedMap, centerX=True, centerY=True) -> None:
         """
         It creates a class called Game.
         
@@ -27,7 +27,8 @@ class GamePlatform:
         self.endTiles = {}
         self.bases = {}
         self.system = system
-        with open('map.json') as file:
+        self.selectedMap = selectedMap
+        with open('maps/'+self.selectedMap+'.json') as file:
             self.mapData = json.load(file)
         self.playerColors = self.mapData["colors"]
         # Creating a player object for each player in the game.
@@ -291,7 +292,7 @@ class PlayerDisplay:
         self.text = text
         self.textColor = textColor
         self.turnMonitor = TextBox(self.properties, self.width, self.height, self.centerX, self.centerY, self.x, self.y, self.color)
-        self.turnMessage = TextBox(self.properties, self.width*8, self.height*1, self.centerX, self.centerY, self.x-int(self.width/1), int(self.y+self.width*2.75), colors["Secondary"], self.text, textColor=self.textColor)
+        self.turnMessage = TextBox(self.properties, self.width*8, self.height*1, self.centerX, self.centerY, self.x-int(self.width*0.4), int(self.y+self.width*2.75), colors["Secondary"], self.text, textColor=self.textColor, textbgSize=True)
     
     def draw(self, scn, size):
         """
@@ -638,15 +639,21 @@ class Pawn():
         :param tile: The tile that the pawn is moving to
         :return: the value of the last line of the function.
         """
+        #return
         if not isinstance(self.logicalTile.pawn, list):
             try: self.lastTile
             except AttributeError: self.lastTile = None
             if self.lastTile is None:
                 self.lastTile = self.tile
+            if tile == 'out':
+                tLi = []
+                for t in self.platform.endTiles:
+                    tLi.append(int(t.split("-")[0]))
+                tile = self.platform.endTiles[str(max(tLi))+"-S"]
             if str(self.lastTile.x) + ", " + str(self.lastTile.y) == str(tile.x) + ", " + str(tile.y):
                 return
-            print(str(self.lastTile.x) + ", " + str(self.lastTile.y))
-            print(str(tile.x) + ", " + str(tile.y))
+            #print(str(self.lastTile.x) + ", " + str(self.lastTile.y))
+            #print(str(tile.x) + ", " + str(tile.y))
             
             if self.lastTile.x == tile.x:
                 range = myRange(self.lastTile.y, tile.y)
@@ -727,7 +734,7 @@ class Pawn():
                 if getTile == False:
                     self.logicalMove(self.platform.tiles[location])
                 location += 1
-                if location == list(self.platform.tiles.keys())[-1]+1: # if location is over the maximum tile
+                if location == max(list(self.platform.tiles.keys()))+1: # if location is over the maximum tile
                     location = 1
         else:
             stepsLeft = diceValue
@@ -773,6 +780,8 @@ class Pawn():
                         for til in self.platform.tiles:
                             if self.platform.tiles[til].gridType.lower() == "x"+str(playerNum):
                                 logicalLoc = til - (endLocation*-1)
+                        if logicalLoc <= 0:
+                            logicalLoc = max(list(self.platform.tiles.keys())) + logicalLoc
                         self.logicalMove(self.platform.tiles[logicalLoc])
                     else:
                         logicalLoc = endLocation
@@ -784,6 +793,8 @@ class Pawn():
                         endLocation = til - (endLocation*-1)
                 if getTile:
                     return self.platform.tiles[endLocation]
+                if endLocation <= 0:
+                    endLocation = max(list(self.platform.tiles.keys())) + endLocation
                 self.placePawn(self.platform.tiles[endLocation])
             # Moving the pawn to the end tile.
             else:

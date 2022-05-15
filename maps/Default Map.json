@@ -1,7 +1,7 @@
 {
     "dimentions":11,
     "participants":4,
-    "colors":["Red", "Orange", "Yellow", "Green"],
+    "colors":["Red", "Orange", "Yellow", "Lime"],
     "map":{
         "1-E1":[2, 7],
         "2-N":[3, 7],
