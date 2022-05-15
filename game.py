@@ -255,6 +255,12 @@ class GamePlatform:
         """
         self.rolled = True
 
+        if self.turn.firstTurn:
+            value = random.choice([1, 1, 1, 1, 6]) # 80% one, 20% six for players first turn
+            self.dice.dice.changeText(str(value))
+            self.dice.changeValue(value)
+            self.turn.disableFirstTurn()
+
         if len(self.turn.home.pawn) +  len(self.turn.pawnsOut) == 4:
             if value == 1 or value == 6:
                 self.playerDisplay.changeText(self.turn.color + ", Pick a Pawn")
@@ -457,6 +463,7 @@ class Player():
         """
         self.color = color
         self.bot = bot
+        self.firstTurn = True
         self.pawns = []
         self.pawnsOut = []
         for i in range(4):
@@ -941,6 +948,9 @@ class Dice:
                 pygame.display.flip()
             pygame.time.wait(800)
             self.platform.diceRoll(self.value)
+    
+    def changeValue(self, value):
+        self.value = value
 
     def isOver(self, pos):
         """
