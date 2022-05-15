@@ -5,7 +5,7 @@ import json
 from gui import *
 
 class GamePlatform:
-    def __init__(self, properties, mode, participants, system, selectedMap, centerX=True, centerY=True) -> None:
+    def __init__(self, properties, bots, participants, system, selectedMap, centerX=True, centerY=True) -> None:
         """
         It creates a class called Game.
         
@@ -17,9 +17,9 @@ class GamePlatform:
         (optional)
         :param centerY: If the game should be centered on the Y axis, defaults to True (optional)
         """
-        self.mode = mode
         self.properties = properties
         self.participants = participants
+        self.bots = bots
         self.centerX = centerX
         self.centerY = centerY
         self.players = {}
@@ -32,6 +32,13 @@ class GamePlatform:
             self.mapData = json.load(file)
         self.playerColors = self.mapData["colors"]
         # Creating a player object for each player in the game.
+        for i in range(self.participants):
+            i += 1
+            if self.participants-i < self.bots:
+                self.players[self.playerColors[i-1]] = Player(self.playerColors[i-1], self, bot=True)
+            else:
+                self.players[self.playerColors[i-1]] = Player(self.playerColors[i-1], self, bot=False)
+        '''
         if self.mode == "mgo":
             for i in range(self.participants):
                 self.players[self.playerColors[i]] = Player(self.playerColors[i], self)
@@ -39,6 +46,8 @@ class GamePlatform:
             self.players[self.playerColors[0]] = Player(self.playerColors[0], self, bot=False)
             for i in range(self.participants-1):
                 self.players[self.playerColors[i+1]] = Player(self.playerColors[i+1], self, bot=True)
+        '''
+
         self.turn = self.players[self.playerColors[0]]
         self.rolled = False
 
@@ -645,8 +654,10 @@ class Pawn():
             except AttributeError: self.lastTile = None
             if self.lastTile is None:
                 self.lastTile = self.tile
+            tileWasOut = False
             if tile == 'out':
                 tLi = []
+                tileWasOut = True
                 for t in self.platform.endTiles:
                     tLi.append(int(t.split("-")[0]))
                 tile = self.platform.endTiles[str(max(tLi))+"-S"]
@@ -695,6 +706,34 @@ class Pawn():
                     self.logicalTile = tile
                     pygame.display.flip()
                     pygame.time.wait(int(200*(1/(len(range)))))
+            elif abs(self.lastTile.y-tile.y) == abs(self.lastTile.x-tile.x):
+                if tileWasOut:
+                    return
+                #https://stackoverflow.com/questions/16552508/python-loops-for-simultaneous-operation-two-or-possibly-more
+                def conv(num):
+                    for x in num:
+                        yield x
+                    return num
+                rangex = conv(myRange(self.lastTile.x, tile.x))
+                rangey = conv(myRange(self.lastTile.y, tile.y))
+                for x, y in zip(rangex, rangey):
+                    self.x = x
+                    self.y = y
+                    self.pawnBg.draw(self.display)
+
+                    self.lastTile.update()
+                    if self.lastTile.pawn != None:
+                        if self.lastTile.pawn != self:
+                            self.lastTile.pawn.update()
+                    
+                    self.logicalTile.update()
+                    if self.logicalTile.pawn != None:
+                        if self.logicalTile.pawn != self:
+                            self.logicalTile.pawn.update()
+                    self.draw(self.display, self.properties)
+                    self.logicalTile = tile
+                    pygame.display.flip()
+                    pygame.time.wait(int(200*(1/(len(myRange(self.lastTile.x, tile.x))))))
             if self.lastTile is not tile:
                 self.lastTile = tile
 
@@ -791,10 +830,10 @@ class Pawn():
                 for til in self.platform.tiles:
                     if self.platform.tiles[til].gridType.lower() == "x"+str(playerNum):
                         endLocation = til - (endLocation*-1)
-                if getTile:
-                    return self.platform.tiles[endLocation]
                 if endLocation <= 0:
                     endLocation = max(list(self.platform.tiles.keys())) + endLocation
+                if getTile:
+                    return self.platform.tiles[endLocation]
                 self.placePawn(self.platform.tiles[endLocation])
             # Moving the pawn to the end tile.
             else:

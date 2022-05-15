@@ -103,8 +103,7 @@ class WindowSystem:
         #pygame.draw.rect(self.mainScreen, (195, 200, 219), pygame.Rect(0, 0, self.properties.width, self.properties.height))
         #pygame.draw.rect(self.mainScreen, (255,255,0), pygame.Rect(30, 30, 60, 60))
         startScreen = Screen("Start Screen", self.properties)
-        sGameOptionsScreen = Screen("Singleplayer Game Options", self.properties)
-        mGameOptionsScreen = Screen("Multiplayer Game Options", self.properties)
+        iGameOptionsScreen = Screen("Initiate Game Options", self.properties)
         gameScreen = Screen("Game", self.properties)
         endScreen = Screen("End Screen", self.properties)
         buildOptScreen = Screen("Map Builder Options", self.properties)
@@ -114,8 +113,7 @@ class WindowSystem:
 
         self.screens = {
             "main":startScreen,
-            "sgo":sGameOptionsScreen,
-            "mgo":mGameOptionsScreen,
+            "igo":iGameOptionsScreen,
             "gs":gameScreen,
             "es":endScreen,
             "bso":buildOptScreen,
@@ -126,8 +124,7 @@ class WindowSystem:
 
         self.screensFunc = {
             "main":self.main,
-            "sgo":self.singleGameOptScn,
-            "mgo":self.multiGameOptScn,
+            "igo":self.initiateGameOptScn,
             "gs":self.gameScn,
             "es":self.endScn,
             "bso":self.buildOptScn,
@@ -161,11 +158,8 @@ class WindowSystem:
         self.display = "main"
         titleTB = self.addTextBox(TextBox(self.properties, 500, 70, centerX=True, y=100, text='Ludo', color=colors["Primary2"]))
         titleTB.draw(scn)
-        singlePlayerBtn = self.addTextBox(TextBox(self.properties, 230, 60, centerX=True, centerY=True, y=0, text='Singleplayer', color=colors["DarkGrey"], hoverColor=colors["White"], command=lambda x="sgo": self.changeScreen(x)))
+        singlePlayerBtn = self.addTextBox(TextBox(self.properties, 230, 60, centerX=True, centerY=True, y=50, text='Play', color=colors["DarkGrey"], hoverColor=colors["White"], command=lambda x="igo": self.changeScreen(x)))
         singlePlayerBtn.draw(scn, outline=colors["Primary1"], size=40)
-        multiPlayerBtn = self.addTextBox(TextBox(self.properties, 230, 60, centerX=True, centerY=True, y=100, text='Multiplayer', color=colors["DarkGrey"], hoverColor=colors["White"], command=lambda x="mgo": self.changeScreen(x)))
-        
-        multiPlayerBtn.draw(scn, outline=colors["Primary1"], size=40)
         
         gameOptBtn = self.addTextBox(TextBox(self.properties, 230, 60, centerX=True, centerY=True, x=150, y=220, text='Options', color=colors["DarkGrey"], hoverColor=colors["White"], command=lambda x="gos": self.changeScreen(x)))
 
@@ -200,54 +194,31 @@ class WindowSystem:
         applyBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=True, centerY=False, y="max-20", x=0, text='Apply', command=lambda: self.applyOptions()))
         applyBtn.draw(scn)
 
-    def multiGameOptScn(self, scn):
+    def initiateGameOptScn(self, scn):
         """GUI for multiplayer options
 
         Args:
             scn (Screen): the linked screen to this gui layout
         """
-        self.display = "mgo"
+        self.display = "igo"
         # Title
         titleTB = self.addTextBox(TextBox(self.properties, 500, 70, centerX=True, y=100, text='Multiplayer Options', color=colors["Primary2"]))
         titleTB.draw(scn)
 
         playerNums = []
+        botNums = ["0"]
         with open('maps/'+self.selectedMap+'.json') as file:
             mapPlayers = json.load(file)["participants"]
         for i in range(mapPlayers-1):
             playerNums.append(str(i+2))
+            botNums.append(str(i+1))
 
         # Player selection
-        botsSelect = self.addTextBox(Selection(self.properties, playerNums, True, True, title="Players:"))
+        botsSelect = self.addTextBox(Selection(self.properties, playerNums, True, True, y=-50, title="Players:"))
         botsSelect.draw(scn, 40)
 
-        # Start Btn
-        backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=True, centerY=False, y="max-20", x=0, text='Start', command=lambda: self.startGame()))
-        backBtn.draw(scn)
-
-        # Back Btn
-        backBtn = self.addTextBox(TextBox(self.properties, 150, 60, color=colors["Primary1"], centerX=False, centerY=False, y="max-20", x=20, text='Back', command=lambda x="main": self.changeScreen(x)))
-        backBtn.draw(scn)
-
-    def singleGameOptScn(self, scn):
-        """GUI for singleplayer options
-
-        Args:
-            scn (Screen): the linked screen to this gui layout
-        """
-        self.display = "sgo"
-        # Title
-        titleTB = self.addTextBox(TextBox(self.properties, 500, 70, centerX=True, y=100, text='Singleplayer Options', color=colors["Primary2"]))
-        titleTB.draw(scn)
-
-        playerNums = []
-        with open('maps/'+self.selectedMap+'.json') as file:
-            mapPlayers = json.load(file)["participants"]
-        for i in range(mapPlayers-1):
-            playerNums.append(str(i+1))
-
-        # Player selection
-        botsSelect = self.addTextBox(Selection(self.properties, playerNums, True, True, title="Bots:"))
+        # bot selection
+        botsSelect = self.addTextBox(Selection(self.properties, botNums, True, True, y=150, title="Bots:"))
         botsSelect.draw(scn, 40)
 
         # Start Btn
@@ -265,7 +236,7 @@ class WindowSystem:
         :param scn: The scene to draw the grid on
         """
        
-        grid = self.addTextBox(GamePlatform(self.properties, self.display, self.participants, self, self.selectedMap))
+        grid = self.addTextBox(GamePlatform(self.properties, self.bots, self.participants, self, self.selectedMap))
         self.display = "gs"
         grid.draw(scn, self.display)
         # Quit Btn
@@ -285,7 +256,7 @@ class WindowSystem:
     def buildOptScn(self, scn):
         self.display = "bso"
         # Title
-        titleTB = self.addTextBox(TextBox(self.properties, 500, 70, centerX=True, y=100, text='Builder Options - Comming Later', color=colors["Primary2"]))
+        titleTB = self.addTextBox(TextBox(self.properties, 500, 70, centerX=True, y=100, text='Builder Options', color=colors["Primary2"]))
         titleTB.draw(scn)
 
         # grid size selection
@@ -417,8 +388,10 @@ class WindowSystem:
         :param val: the value of the given value
         """
         selType = obj.title
-        if "player" in selType.lower() or "bot" in selType.lower():
+        if "player" in selType.lower():
             self.participants = int(val)
+        elif "bot" in selType.lower():
+            self.bots = int(val)
         elif "resolution" in selType.lower():
             self.properties.changeRes(val.lower())
         elif "grid size" in selType.lower():
