@@ -916,7 +916,7 @@ class Dice:
         self.color = color
         self.value = 6
         self.platform = platform
-        self.dice = TextBox(self.properties, self.width, self.height, centerX, centerY, self.x, self.y, self.color, str(self.value), command=lambda: self.roll())
+        self.dice = TextBox(self.properties, self.width, self.height, centerX, centerY, self.x, self.y, self.color, str(self.value), command=lambda: self.roll(), font="fonts/Dice.otf")
     
     def draw(self, display):
         """

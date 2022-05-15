@@ -170,7 +170,7 @@ class Selection():
 class TextBox():
     """Class for creating a textbox. Can be used a a button, text info or a simple block
     """
-    def __init__(self, properties, width, height, centerX=False, centerY=False, x=0 , y=0, color=(255,255,0), text='', hoverColor=None, command=None, textColor=(0,0,0), textbgSize=False):
+    def __init__(self, properties, width, height, centerX=False, centerY=False, x=0 , y=0, color=(255,255,0), text='', hoverColor=None, command=None, textColor=(0,0,0), textbgSize=False, font=None):
         """initates the textbox but does not draw and place it on screen
 
         Args:
@@ -209,6 +209,7 @@ class TextBox():
         self.hover = False
         self.textbgSize = textbgSize
         self.color = color
+        self.font = font
         self.originalColor = color
         self.textColor = textColor
         if hoverColor != None:
@@ -243,7 +244,7 @@ class TextBox():
         pygame.draw.rect(display, self.color, (self.x,self.y,self.width,self.height), 0, border_radius=8) # draw rectangle
         
         if self.text != '':
-            font = pygame.font.SysFont(None, size)
+            font = pygame.font.Font(self.font, size)
             text = font.render(self.text, 1, self.textColor)
             display.blit(text, (self.x + (self.width/2 - text.get_width()/2), self.y + (self.height/2 - text.get_height()/2)))
 
