@@ -1,5 +1,4 @@
 import pygame
-import fontawesome as fa
 from colors import colors
 
 class Selection():
